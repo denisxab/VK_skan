@@ -12,9 +12,9 @@ def openvk (b):
 	try:
 		b.get('https://vk.com/im')
 		t=b.find_element_by_id('email')
-		t.send_keys('89522444900')
+		t.send_keys('')
 		t=b.find_element_by_id('pass')
-		t.send_keys('denisKustov2000kustovDenis')
+		t.send_keys('')
 		s=b.find_element_by_id('login_button')
 		s.click()
 		time.sleep(1)
