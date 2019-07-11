@@ -71,7 +71,7 @@ with open('Name.txt','r') as File_name:
 
 
 os.mkdir(group) 
-token = "f289aa40f289aa40f289aa4039f2e03297ff289f289aa40ae2c6b5129292562a1d4c02f"
+token = "#"
 v = "5.74"
 result_function = sorting_numbers(a,stream)
 all_id = []
