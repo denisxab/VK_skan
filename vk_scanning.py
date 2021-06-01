@@ -5,13 +5,14 @@ import requests
 import threading
 import json
 import os
-import numpy
+
+from See import data_private
 
 all_id = []
 user_false = 0
 
 
-def vK_skan(time_sleep_therad: float, padding, name_group, token, v):
+def vK_scan(time_sleep_therad: float, padding, name_group, token, v):
     """
     https://vk.com/dev/groups.getMembers - описание метода
     https://vk.com/dev/objects/user - описания фильтра
@@ -37,11 +38,12 @@ def vK_skan(time_sleep_therad: float, padding, name_group, token, v):
 
     last_seen = time (integer) — время последнего посещения в формате Unixtime.
     """
+
     global all_id, user_false
     counts = 1000
     offset = padding[0]
     while offset <= padding[1]:
-        respons = requests.get('https://api.vk.com/method/groups.getMembers', params={
+        response = requests.get('https://api.vk.com/method/groups.getMembers', params={
             "access_token": token,
             'v': v,
             "group_id": name_group,
@@ -50,44 +52,51 @@ def vK_skan(time_sleep_therad: float, padding, name_group, token, v):
             'fields': 'sex, city, bdate,followers_count,relation,can_write_private_message,last_seen'
         })
         offset += counts
-        print((((padding[1] - offset) - (padding[1] - padding[0])) * -1) // counts)
+        print(
+            (((padding[1] - offset) - (padding[1] - padding[0])) * -1) // counts)
+
         try:
-            for i in respons.json()['response']['items']:
+            for i in response.json()['response']['items']:
                 try:
                     all_id.append((i['id'], i['sex'], int(i['bdate'].split('.')[2]), i['city']['id'],
-                                   i['can_write_private_message'], i['followers_count'], i['relation'], i["last_seen"]["time"]))
+                                   i['can_write_private_message'], i['followers_count'], i['relation'],
+                                   i["last_seen"]["time"]))
                 except KeyError:
                     user_false += 1
                 except IndexError:
                     user_false += 1
 
-
-
         except KeyError:
-            if respons.json()["error"]["error_code"] == 5:
+            if response.json()["error"]["error_code"] == 5:
                 print("Неверный Токен")
                 return
-            print(respons.json())
+            print(response.json())
 
         time.sleep(time_sleep_therad)
 
 
-class Search_Frend():
+class Search_Friends():
 
-    def __init__(self, token: str, name_groub:str , count_user: int, count_therd: int):
-        self.a = count_user
-        self.countThered = count_therd
-        self.Error_list = [str()]
+    def __init__(self, token: str, name_group: str, count_user: int, count_therad: int, versionApi: str):
+        self.name_group = name_group
+        self.countThered = count_therad
+        self.Error_list = []  # str()
         self.token = token
-        self.v = "5.131"  # "5.74"
-        self.result_function = self.sorting_numbers(self.a, self.countThered)
+        self.v = versionApi
+
+        if count_user == 0:
+            self.count_user = self.get_cont_user_group()
+        else:
+            self.count_user = count_user
+
+        self.count_offset_thered = self.sorted_numbers(self.count_user, self.countThered)
         self.all_id = []
-        self.threading_list = []
+        self.thered_list = []
 
-        self.name_group = name_groub
         self.open_read_file()
+        self.countAllVerifiedUsers = 0
 
-    def sorting_numbers(self, number_all, countThered):
+    def sorted_numbers(self, number_all, countThered):
         b = number_all // (countThered)  # 10
         v = []
         d = []
@@ -110,23 +119,22 @@ class Search_Frend():
             # Файл существут
             self.Error_list.append(error)
 
-    def serch(self):
+    def search(self):
         # for x in range(self.countThered):
-        #     vK_skan(self.result_function[x], self.name_group, self.token, self.v)
+        #     vK_scan(self.count_offset_thered[x], self.name_group, self.token, self.v)
 
         time = 0
         for x in range(self.countThered):
             time += 0.3
-            t = threading.Thread(target=vK_skan,
-                                 args=(time, self.result_function[x], self.name_group, self.token, self.v))
+            t = threading.Thread(target=vK_scan,
+                                 args=(time, self.count_offset_thered[x], self.name_group, self.token, self.v))
 
-
-            self.threading_list.append(t)
+            self.thered_list.append(t)
             t.start()
-        for y in self.threading_list:
+        for y in self.thered_list:
             y.join()
 
-    def cleaning_id(self):
+    def cleaned_id(self):
         now = time.time()
         n = []
         for x in self.all_id:
@@ -136,21 +144,44 @@ class Search_Frend():
                         if x[4] == 1:
                             if x[5] <= 800:
                                 if x[6] == 0 or x[6] == 6 or x[6] == 1:
-                                    # Провенрить тчательно время последнего посещение сайта
+                                    # Проветрить тщательно время последнего посещение сайта
                                     if x[7] >= (now - 604800):  # (now - 604800) = 7 дней
                                         n.append(x)
+                                        self.countAllVerifiedUsers += 1
 
-        with open('{}\\ID_gerl.json'.format(self.name_group), 'w') as file_json:
+        with open('{}\\userId.json'.format(self.name_group), 'w') as file_json:
             json.dump(n, file_json)
+
+    def get_cont_user_group(self) -> int:
+        response = requests.get('https://api.vk.com/method/groups.getMembers', params={
+            "access_token": self.token,
+            'v': self.v,
+            "group_id": self.name_group,
+            'count': 1,
+            'offset': 1,
+        })
+        return response.json()['response']['count']
 
 
 if __name__ == "__main__":
-    csSF = Search_Frend(token="",
-                        name_groub = "itumor",
-                        count_user=49000,
-                        count_therd=3)
+    start_time = time.time()
 
+    name_group = "tproger"
+
+    dt = data_private()
+    csSF = Search_Friends(token=dt["token"],
+                          name_group=name_group,
+                          count_user=0,
+                          count_therad=3,
+                          versionApi="5.131")
     all_id = csSF.all_id
-    csSF.serch()
-    csSF.cleaning_id()
+    csSF.search()
+    csSF.cleaned_id()
+
     print('++++++++++++++++++++++++++')
+    print("Время поиска: {0}\nНайденно: {1}\nПрошедшие Проверку: {2}\nОшибки Поиска: {3}\nОшибки Сисетмы: {4}".format(
+        time.time() - start_time,
+        csSF.count_user - user_false,
+        csSF.countAllVerifiedUsers,
+        user_false,
+        csSF.Error_list))
