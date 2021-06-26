@@ -1,4 +1,4 @@
-# Поиск элемента
+﻿# Поиск элемента
 def CLR_Html(braws,Namess):
 
 	otvet = []

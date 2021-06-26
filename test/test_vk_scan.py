@@ -1,4 +1,4 @@
-import unittest
+﻿import unittest
 
 from vk_scan import SearchUserInGroup, get_my_password, offset_thread
 
