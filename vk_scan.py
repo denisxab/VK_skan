@@ -261,23 +261,26 @@ class SearchUserInGroup:
                         FlagPrint=width_column)
 
 
+name_group = "https://vk.com/netflix18"
+
 if __name__ == "__main__":
-    pass
-    # user_false = 0
-    #
-    # name_group = "https://vk.com/prog_life"
-    # token = get_my_password(r"C:\Users\denis\PycharmProjects\pythonProject11\config.txt")["token"]
-    #
-    # my_class = SearchUserInGroup(
-    #     token=token,
-    #     name_group=name_group,
-    #     count_thread=3,
-    #     versionApi="5.131")
-    #
-    # my_class.search()
-    # print('===========================')
-    # print(my_class.get_cont_user_group())
-    # print(user_false)
-    #
-    # my_class.show_table(limit_show=3, width_column=10)
-    # my_class.show_search(limit_show=3, width_column=10)
+
+
+    token = get_my_password(r"C:\Users\denis\PycharmProjects\pythonProject11\config.txt")["token"]
+    my_class = SearchUserInGroup(
+        token=token,
+        name_group=name_group,
+        count_thread=3,
+        versionApi="5.131")
+
+    if True:
+        print('===========================')
+        print(my_class.get_cont_user_group())
+        print('===========================')
+        my_class.search()
+        print('===========================')
+        print(my_class.get_cont_user_group())
+        print(user_false)
+
+    my_class.show_table(limit_show=3, width_column=10)
+    my_class.show_search(limit_show=3, width_column=10)

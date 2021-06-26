@@ -15,13 +15,10 @@ class Test_SearchUserInGroup(unittest.TestCase):
             count_thread=3,
             versionApi="5.131")
 
-
-    #@unittest.skip("showing class skipping")
+    # @unittest.skip("showing class skipping")
     def test_init(self):
         self.my_class.show_table(limit_show=3, width_column=10)
         self.my_class.show_search(limit_show=3, width_column=10)
-        print()
-
 
     @unittest.skip("showing class skipping")
     def test_search(self):
@@ -29,7 +26,6 @@ class Test_SearchUserInGroup(unittest.TestCase):
         self.my_class.get_cont_user_group()
         self.my_class.show_table(limit_show=3, width_column=10)
         self.my_class.show_search(limit_show=3, width_column=10)
-
 
     def test_offset_thread(self):
         self.assertEqual(offset_thread(69257, 3), [(0, 23085), (23086, 46170), (46171, 69257)])
