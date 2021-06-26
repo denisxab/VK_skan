@@ -9,8 +9,8 @@ class Test_SearchUserInGroup(unittest.TestCase):
         self.name_group = "https://vk.com/prog_life"
         self.token = get_my_password(r"C:\Users\denis\PycharmProjects\pythonProject11\config.txt")["token"]
         self.my_class = SearchUserInGroup(
-            token=self.token,
-            name_group=self.name_group,
+            token_vk=self.token,
+            group_name=self.name_group,
             limit_get_user_group=0,
             count_thread=3,
             versionApi="5.131")

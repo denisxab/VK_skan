@@ -14,8 +14,8 @@ user_false = 0
 
 def scan_group(time_sleep_thread: float,
                padding: Tuple[int, int],
-               name_group: str,
-               token: str,
+               group_name: str,
+               token_vk: str,
                v: str):
     """
     https://vk.com/dev/groups.getMembers - описание метода
@@ -42,16 +42,16 @@ def scan_group(time_sleep_thread: float,
     last_seen = time (integer) — время последнего посещения в формате Unixtime.
     """
 
-    global user_false, user_true
-    thread_sq = SqlLiteQrm(f"group/{name_group}.db")
+    global user_false
+    thread_sq = SqlLiteQrm(f"group/{group_name}.db")
     counts = 1000
     offset = padding[0]
     all_id: list = []
     while offset <= padding[1]:
         response = requests.get('https://api.vk.com/method/groups.getMembers', params={
-            "access_token": token,
+            "access_token": token_vk,
             'v': v,
-            "group_id": name_group,
+            "group_id": group_name,
             'count': counts,
             'offset': offset,
             'fields': 'sex,city,bdate,followers_count,relation,can_write_private_message,last_seen'
@@ -72,8 +72,7 @@ def scan_group(time_sleep_thread: float,
                                    ))
                 except:
                     user_false += 1  # Колличесво пользователи которые не имели таких полей
-
-        except Exception as e:
+        except:
             if response.json()["error"]["error_code"] == 6:
                 print("Слишком много запросов в секнду, данные не полученны с сервера")
             else:
@@ -129,20 +128,20 @@ def get_my_password(path_config: str) -> Dict[str, str]:
 
 class SearchUserInGroup:
 
-    def __init__(self, token: str, name_group: str,
+    def __init__(self, token_vk: str, group_name: str,
                  versionApi: str,
                  count_thread: int = 1,
                  limit_get_user_group: int = 0,
                  ):
         """
-        :param token: Токен VK
-        :param name_group: ID группы
+        :param token_vk: Токен VK
+        :param group_name: ID группы
         :param count_thread: Кооличесвто потоков проыессора
         :param versionApi: Версия VK API
-        :param count_user_group: Колличесво участников по умолчанию все
+        :param limit_get_user_group: Колличесво участников по умолчанию все
         """
-        self.token = token
-        self.name_group = name_group if name_group.find("https://vk.com/") == -1 else name_group[15::]
+        self.token = token_vk
+        self.name_group = group_name if group_name.find("https://vk.com/") == -1 else group_name[15::]
         self.count_thread = count_thread
         self.v = versionApi
         self.count_user = self.get_cont_user_group() if not limit_get_user_group else limit_get_user_group
@@ -172,8 +171,6 @@ class SearchUserInGroup:
         return res['response']['count']
 
     def search(self):
-        # for x in range(self.countThered):
-        #     vK_scan(self.count_offset_thered[x], self.name_group, self.token, self.v)
 
         time_sleep_thread = 0
         thread_list = []
@@ -234,9 +231,10 @@ class SearchUserInGroup:
                 last_seen >={0}
                 """.format(now - 604800))
 
-        res = sq.SearchColumn('user', sqn.select("*"),
+        res = sq.SearchColumn('user', sqn.select("id"),
                               # sqlLIMIT=sqn.limit(limit_show),
                               # FlagPrint=width_column,
+                              ReturnSqlRequest=True,
                               sqlWHERE="""
         sex == 1 AND 
         bdata BETWEEN 1999 AND 
@@ -246,8 +244,7 @@ class SearchUserInGroup:
         (relation == 0 OR relation == 6 OR relation == 1) AND 
         last_seen >={0}
         """.format(now - 604800))
-
-        sq.ExecuteManyTable('sorted_users', [[x[0]] for x in res])
+        sq.ExecuteTable('sorted_users', sqlRequest=res)
         sq.GetTable('sorted_users', sqlLIMIT=sqn.limit(10), FlagPrint=12)
 
     def show_table(self, limit_show: int = 10, width_column: int = 20):
@@ -265,11 +262,10 @@ name_group = "https://vk.com/netflix18"
 
 if __name__ == "__main__":
 
-
     token = get_my_password(r"C:\Users\denis\PycharmProjects\pythonProject11\config.txt")["token"]
     my_class = SearchUserInGroup(
-        token=token,
-        name_group=name_group,
+        token_vk=token,
+        group_name=name_group,
         count_thread=3,
         versionApi="5.131")
 
