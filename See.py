@@ -1,16 +1,14 @@
-import os
 import json
+import os
+import re
 import time
+from tkinter import *
 
 import selenium
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver import Chrome
-from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+
 import Soport_webdriver
-from tkinter import *
-import re
 
 
 class SeeUser:

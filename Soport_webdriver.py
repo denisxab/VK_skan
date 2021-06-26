@@ -1,7 +1,3 @@
-from selenium import webdriver 
-
-
-
 # Поиск элемента
 def CLR_Html(braws,Namess):
 
