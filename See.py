@@ -5,8 +5,11 @@ from typing import List
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
-from vk_scan import get_my_password, SqlLiteQrm, name_group
+from vk_scan import get_my_password, name_group
 
+sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
+from sqlliteorm.sqlmodules import *
+from sqlliteorm.sqllite_orm import *
 
 # Поиск элемента
 def CLR_Html(browser: webdriver, Name: str) -> str:
@@ -82,7 +85,7 @@ class SeeUser:
         self.name_db = "group/{0}.db".format(name_db if name_db.find("https://vk.com/") == -1 else name_db[15::])
         self.name_table = "sorted_users"
         self.sq = SqlLiteQrm(self.name_db)
-        self.sq.CreateTable("like_user", {"id_like": int})
+        self.sq.CreateTable("like_user", {"id_like": toTypeSql(int)})
         self.vk_clr = self.ReadDB(view_favorite_profiles)
 
         ViewSee(self.vk_clr, self.sq, userName, password)
