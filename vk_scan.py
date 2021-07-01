@@ -10,10 +10,6 @@ sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
 from sqlliteorm.sqlmodules import *
 from sqlliteorm.sqllite_orm import *
 
-
-TetsData = 10
-
-
 user_false = 0
 
 
