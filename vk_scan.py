@@ -7,7 +7,8 @@ from typing import Dict, List, Tuple
 import requests
 
 sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
-from sqlliteorm import SqlLiteQrm, sqn
+from sqlliteorm.sqlmodules import *
+from sqlliteorm.sqllite_orm import *
 
 user_false = 0
 
@@ -90,9 +91,9 @@ def scan_group(time_sleep_thread: float,
             #         flag_read = False
             #     except:
             #         flag_read = True
-            # thread_sq.GetTable('user',sqlLIMIT=sqn.limit(10),FlagPrint=10)
-            # thread_sq.SearchColumn('user', sqn.select("*"), sqlORDER_BY=sqn.order_by("bdata"), FlagPrint=10,
-            #                        sqlLIMIT=sqn.limit(10))
+            # thread_sq.GetTable('user',sqlLIMIT=limit(10),FlagPrint=10)
+            # thread_sq.SearchColumn('user', select("*"), sqlORDER_BY=order_by("bdata"), FlagPrint=10,
+            #                        sqlLIMIT=limit(10))
 
         time.sleep(time_sleep_thread)
 
@@ -206,22 +207,16 @@ class SearchUserInGroup:
         now = time.time()
         sq = SqlLiteQrm(f"group/{self.name_group}.db")
 
-        sq.SearchColumn('user', sqn.select("*"),
-                        sqlLIMIT=sqn.limit(limit_show),
-                        FlagPrint=width_column,
-                        sqlWHERE="""
-        sex == 1 AND 
+        sq.Search(Select('user', "*").Where("""sex == 1 AND 
         bdata BETWEEN 1999 AND 
         2001 AND city == 2 AND 
         cwpm == 1 AND 
         followers <= 800 AND 
         (relation == 0 OR relation == 6 OR relation == 1) AND 
         last_seen >={0}
-        """.format(now - 604800))
+        """.format(now - 604800)).Limit(limit_show), FlagPrint=width_column)
 
-        sq.SearchColumn('user', sqn.select(sqn.count("id")),
-                        FlagPrint=width_column,
-                        sqlWHERE="""
+        sq.Search(Select('user', CountSql("id")).Where("""
                 sex == 1 AND 
                 bdata BETWEEN 1999 AND 
                 2001 AND city == 2 AND 
@@ -229,13 +224,9 @@ class SearchUserInGroup:
                 followers <= 800 AND 
                 (relation == 0 OR relation == 6 OR relation == 1) AND 
                 last_seen >={0}
-                """.format(now - 604800))
+                """.format(now - 604800)), FlagPrint=width_column)
 
-        res = sq.SearchColumn('user', sqn.select("id"),
-                              # sqlLIMIT=sqn.limit(limit_show),
-                              # FlagPrint=width_column,
-                              ReturnSqlRequest=True,
-                              sqlWHERE="""
+        sq.ExecuteTable('sorted_users', sqlRequest=Select('user', "id").Where("""
         sex == 1 AND 
         bdata BETWEEN 1999 AND 
         2001 AND city == 2 AND 
@@ -243,19 +234,14 @@ class SearchUserInGroup:
         followers <= 800 AND 
         (relation == 0 OR relation == 6 OR relation == 1) AND 
         last_seen >={0}
-        """.format(now - 604800))
-        sq.ExecuteTable('sorted_users', sqlRequest=res)
-        sq.GetTable('sorted_users', sqlLIMIT=sqn.limit(10), FlagPrint=12)
+        """.format(now - 604800)).Request)
+
+        sq.GetTable('sorted_users', LIMIT=(10, 0), FlagPrint=12)
 
     def show_table(self, limit_show: int = 10, width_column: int = 20):
         sq = SqlLiteQrm(f"group/{self.name_group}.db")
-        sq.SearchColumn('user', sqn.select("*"),
-                        sqlLIMIT=sqn.limit(limit_show),
-                        FlagPrint=width_column)
-
-        sq.SearchColumn('user', sqn.select(sqn.count("id")),
-                        sqlLIMIT=sqn.limit(limit_show),
-                        FlagPrint=width_column)
+        sq.Search(Select('user', "*").Limit(limit_show), FlagPrint=width_column)
+        sq.Search(Select('user', CountSql("id")).Limit(limit_show), FlagPrint=width_column)
 
 
 name_group = "https://vk.com/netflix18"
