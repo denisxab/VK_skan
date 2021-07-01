@@ -11,8 +11,6 @@ sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
 from sqlliteorm.sqlmodules import *
 from sqlliteorm.sqllite_orm import *
 
-print(10)
-
 
 # Поиск элемента
 def CLR_Html(browser: webdriver, Name: str) -> str:
