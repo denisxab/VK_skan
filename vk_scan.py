@@ -2,9 +2,13 @@ import os
 import sys
 import threading
 import time
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple, List
 
 import requests
+
+from SyncThread.sync_mod_data import SyncModDataSkippIterQueue
+
+SyncModDataSkippIterQueue.DEBUG_INFO = True
 
 sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
 from sqlliteorm.sqlmodules import *
@@ -13,7 +17,8 @@ from sqlliteorm.sqllite_orm import *
 user_false = 0
 
 
-def scan_group(time_sleep_thread: float,
+def scan_group(LockTrigger: SyncModDataSkippIterQueue,
+               time_sleep_thread: float,
                padding: Tuple[int, int],
                group_name: str,
                token_vk: str,
@@ -44,6 +49,8 @@ def scan_group(time_sleep_thread: float,
     """
 
     global user_false
+    _LockWriteSql = threading.Lock()
+
     thread_sq = SqlLiteQrm(f"group/{group_name}.db")
     counts = 1000
     offset = padding[0]
@@ -71,30 +78,28 @@ def scan_group(time_sleep_thread: float,
                                    i['relation'],  # Семеной положение
                                    i["last_seen"]["time"]  # Дата последнего посещения ВК
                                    ))
-                except:
+                except (IndexError, KeyError):
                     user_false += 1  # Колличесво пользователи которые не имели таких полей
-        except:
+        except KeyError:
             if response.json()["error"]["error_code"] == 6:
                 print("Слишком много запросов в секнду, данные не полученны с сервера")
             else:
                 print(response.json())
 
         # Сохраняем данные в БД
-        if len(all_id) >= counts:
-            # Возможна ошибка многопоточной записи
+        if len(all_id) >= 300 and LockTrigger.is_lock():
+            """
+            Синхранизация записи потоков. Если запись занята потоки будут продолжать 
+            получать даные из интерент и хранить их в ОЗУ
+            """
+            print(f"[INFO] Поток:{time_sleep_thread} - Записывает данные в БД")
+
             thread_sq.ExecuteManyTable('user', all_id)
             all_id.clear()
-            # flag_read = True
-            # while flag_read:
-            #     try:
-            #         thread_sq.ExecuteManyTable('user', all_id)
-            #         flag_read = False
-            #     except:
-            #         flag_read = True
-            # thread_sq.GetTable('user',sqlLIMIT=limit(10),FlagPrint=10)
-            # thread_sq.SearchColumn('user', select("*"), sqlORDER_BY=order_by("bdata"), FlagPrint=10,
-            #                        sqlLIMIT=limit(10))
 
+            LockTrigger(lock=False)
+
+        # Псевдо Защита от привышения лимита получения пользователе Вк
         time.sleep(time_sleep_thread)
 
 
@@ -179,20 +184,21 @@ class SearchUserInGroup:
         sq = SqlLiteQrm(f"group/{self.name_group}.db")
         sq.DeleteTable(["user", "sorted_users"])
         sq.CreateTable("user", {
-            'id': int,
-            'sex': int,
-            'bdata': int,
-            'city': int,
-            'cwpm': int,
-            'followers': int,
-            'relation': int,
-            'last_seen': int
+            'id': toTypeSql(int),
+            'sex': toTypeSql(int),
+            'bdata': toTypeSql(int),
+            'city': toTypeSql(int),
+            'cwpm': toTypeSql(int),
+            'followers': toTypeSql(int),
+            'relation': toTypeSql(int),
+            'last_seen': toTypeSql(int)
         })
-        sq.CreateTable('sorted_users', {'id_user': int})
+        sq.CreateTable('sorted_users', {'id_user': toTypeSql(int)})
 
         for x in range(self.count_thread):
             time_sleep_thread += 0.3
             t = threading.Thread(target=scan_group, args=(
+                SyncModDataSkippIterQueue(f"Th_{x}"),
                 time_sleep_thread,
                 self.count_offset_thread[x],
                 self.name_group,
