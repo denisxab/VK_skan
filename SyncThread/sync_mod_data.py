@@ -5,7 +5,7 @@
 import random
 import time
 from sys import getsizeof
-from typing import List, Union
+from typing import List, Union, Tuple
 
 
 class SyncModData:
@@ -15,6 +15,21 @@ class SyncModData:
     def CreateThread(count_thread: int, objectSync) -> \
             list:
         return [objectSync(f"Th_{item}") for item in range(1, count_thread)]
+
+    @staticmethod
+    def offset_thread(countItem, countThread) -> List[Tuple[int, int]]:
+        mid = countItem // countThread
+        start: int = 0
+        end: int = mid
+        res: List[Tuple[int, int]] = [(start, end)]
+        for x in range(1, countThread):
+            start = end + 1
+            end += mid
+            if x + 1 == countThread:
+                res.append((start, countItem))
+            else:
+                res.append((start, end))
+        return res
 
     def __init__(self, name: str = None):
         self.NameThread = str(name)  # Даем имя

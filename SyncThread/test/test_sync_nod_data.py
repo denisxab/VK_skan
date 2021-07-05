@@ -2,8 +2,9 @@ import random
 import threading
 import time
 import unittest
-
-from SyncThread.sync_mod_data import *
+from sys import getsizeof
+from SyncThread.sync_mod_data import SyncModData, SyncModDataSkippIterQueue, SyncModDataSkippIterSortQueue, \
+    SyncModDataPauseIterQueue
 
 SyncModDataSkippIterQueue.DEBUG_INFO = True
 SyncModDataSkippIterSortQueue.DEBUG_INFO = True
@@ -19,7 +20,7 @@ class Test_SyncModDataSkippIter(unittest.TestCase):
     data = 1
 
     @classmethod
-    def TheradFun(cls,item_thread: SyncModDataSkippIterQueue) -> None:
+    def TheradFun(cls, item_thread: SyncModDataSkippIterQueue) -> None:
         for x in range(100):
             print("\t" * 10 + f"{item_thread}")
             if item_thread.is_lock():
@@ -32,7 +33,6 @@ class Test_SyncModDataSkippIter(unittest.TestCase):
             else:
                 time.sleep(2)
                 continue
-
 
     @classmethod
     @unittest.skip("Test_SyncModDataSkippIter")
@@ -73,7 +73,6 @@ class Test_SyncModDataSkippIterSortQueue(unittest.TestCase):
                 new_data.append(1)
                 continue
 
-
     @classmethod
     @unittest.skip("Test_SyncModDataSkippIter1")
     def test_all(cls):
@@ -91,8 +90,9 @@ class Test_SyncModDataSkippIterSortQueue(unittest.TestCase):
 
 class Test_SyncModDataPauseIterQueue(unittest.TestCase):
     data = 1
+
     @classmethod
-    def TheradFun(cls,item_thread: SyncModDataPauseIterQueue) -> None:
+    def TheradFun(cls, item_thread: SyncModDataPauseIterQueue) -> None:
         for x in range(100):
             print("\t" * 10 + f"{item_thread}")
             if item_thread.is_lock():
@@ -106,10 +106,8 @@ class Test_SyncModDataPauseIterQueue(unittest.TestCase):
                 time.sleep(2)
                 continue
 
-
-
     @classmethod
-    #@unittest.skip("Test_SyncModDataSkippIter")
+    # @unittest.skip("Test_SyncModDataSkippIter")
     def test_all(cls):
         threadList = []
         nameList = SyncModData.CreateThread(5, SyncModDataPauseIterQueue)
@@ -121,6 +119,7 @@ class Test_SyncModDataPauseIterQueue(unittest.TestCase):
         #
         for th in threadList:
             th.join()
+
 
 if __name__ == '__main__':
     unittest.main()

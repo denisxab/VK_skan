@@ -1,6 +1,7 @@
 ﻿import unittest
 
-from vk_scan import SearchUserInGroup, get_my_password, offset_thread
+import SyncThread
+from vk_scan import SearchUserInGroup, get_my_password
 
 
 class Test_SearchUserInGroup(unittest.TestCase):
@@ -30,7 +31,7 @@ class Test_SearchUserInGroup(unittest.TestCase):
         self.my_class.show_search(limit_show=3, width_column=10)
 
     def test_offset_thread(self):
-        self.assertEqual(offset_thread(69257, 3), [(0, 23085), (23086, 46170), (46171, 69257)])
+        self.assertEqual(SyncThread.SyncModData.offset_thread(69257, 3), [(0, 23085), (23086, 46170), (46171, 69257)])
 
 
 if __name__ == '__main__':

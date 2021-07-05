@@ -2,120 +2,20 @@ import os
 import sys
 import threading
 import time
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple
 
 import requests
 
-from SyncThread.sync_mod_data import SyncModDataSkippIterQueue
-
+from SyncThread.sync_mod_data import SyncModDataSkippIterQueue,SyncModData
 SyncModDataSkippIterQueue.DEBUG_INFO = True
+
+
 
 sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
 from sqlliteorm.sqlmodules import *
 from sqlliteorm.sqllite_orm import *
 
 user_false = 0
-
-
-def scan_group(LockTrigger: SyncModDataSkippIterQueue,
-               time_sleep_thread: float,
-               padding: Tuple[int, int],
-               group_name: str,
-               token_vk: str,
-               v: str):
-    """
-    https://vk.com/dev/groups.getMembers - описание метода
-    https://vk.com/dev/objects/user - описания фильтра
-
-    sex = пол
-    city = информация о городе, указанном на странице пользователя в разделе «Контакты». Возвращаются следующие поля:
-    bdate = дата рождения
-    followers_count = количество подписчиков пользователя.
-    relation = семейное положение. Возможные значения:
-                1 — не женат/не замужем;
-                2 — есть друг/есть подруга;
-                3 — помолвлен/помолвлена;
-                4 — женат/замужем;
-                5 — всё сложно;
-                6 — в активном поиске;
-                7 — влюблён/влюблена;
-                8 — в гражданском браке;
-                0 — не указано.
-    can_write_private_message = информация о том, может ли текущий пользователь отправить личное сообщение. Возможные значения:
-                1 — может;
-                0 — не может.
-
-    last_seen = time (integer) — время последнего посещения в формате Unixtime.
-    """
-
-    global user_false
-    _LockWriteSql = threading.Lock()
-
-    thread_sq = SqlLiteQrm(f"group/{group_name}.db")
-    counts = 1000
-    offset = padding[0]
-    all_id: list = []
-    while offset <= padding[1]:
-        response = requests.get('https://api.vk.com/method/groups.getMembers', params={
-            "access_token": token_vk,
-            'v': v,
-            "group_id": group_name,
-            'count': counts,
-            'offset': offset,
-            'fields': 'sex,city,bdate,followers_count,relation,can_write_private_message,last_seen'
-        })
-        offset += counts
-        print(padding[1] - offset)
-        try:
-            for i in response.json()['response']['items']:
-                try:
-                    all_id.append((i['id'],  # id пользователя
-                                   i['sex'],  # Пол
-                                   int(i['bdate'].split('.')[2]),  # Дата рождения
-                                   i['city']['id'],  # Город
-                                   i['can_write_private_message'],  # Возможность писать сообщения
-                                   i['followers_count'],  # Колличество подпищеков
-                                   i['relation'],  # Семеной положение
-                                   i["last_seen"]["time"]  # Дата последнего посещения ВК
-                                   ))
-                except (IndexError, KeyError):
-                    user_false += 1  # Колличесво пользователи которые не имели таких полей
-        except KeyError:
-            if response.json()["error"]["error_code"] == 6:
-                print("Слишком много запросов в секнду, данные не полученны с сервера")
-            else:
-                print(response.json())
-
-        # Сохраняем данные в БД
-        if len(all_id) >= 300 and LockTrigger.is_lock():
-            """
-            Синхранизация записи потоков. Если запись занята потоки будут продолжать 
-            получать даные из интерент и хранить их в ОЗУ
-            """
-            print(f"[INFO] Поток:{time_sleep_thread} - Записывает данные в БД")
-
-            thread_sq.ExecuteManyTable('user', all_id)
-            all_id.clear()
-
-            LockTrigger(lock=False)
-
-        # Псевдо Защита от привышения лимита получения пользователе Вк
-        time.sleep(time_sleep_thread)
-
-
-def offset_thread(count_user, count_thread) -> List[Tuple[int, int]]:
-    mid = count_user // count_thread
-    start: int = 0
-    end: int = mid
-    res: List[Tuple[int, int]] = [(start, end)]
-    for x in range(1, count_thread):
-        start = end + 1
-        end += mid
-        if x + 1 == count_thread:
-            res.append((start, count_user))
-        else:
-            res.append((start, end))
-    return res
 
 
 def get_my_password(path_config: str) -> Dict[str, str]:
@@ -155,7 +55,7 @@ class SearchUserInGroup:
         os.makedirs('group') if not os.path.exists('group') else None
 
         # Отступы по участникам для потоков
-        self.count_offset_thread = offset_thread(self.count_user, self.count_thread)
+        self.count_offset_thread = SyncModData.offset_thread(self.count_user, self.count_thread)
 
     def get_cont_user_group(self) -> int:
         response = requests.get('https://api.vk.com/method/groups.getMembers', params={
@@ -197,7 +97,7 @@ class SearchUserInGroup:
 
         for x in range(self.count_thread):
             time_sleep_thread += 0.3
-            t = threading.Thread(target=scan_group, args=(
+            t = threading.Thread(target=SearchUserInGroup.scan_group, args=(
                 SyncModDataSkippIterQueue(f"Th_{x}"),
                 time_sleep_thread,
                 self.count_offset_thread[x],
@@ -248,6 +148,93 @@ class SearchUserInGroup:
         sq = SqlLiteQrm(f"group/{self.name_group}.db")
         sq.Search(Select('user', "*").Limit(limit_show), FlagPrint=width_column)
         sq.Search(Select('user', CountSql("id")).Limit(limit_show), FlagPrint=width_column)
+
+    @staticmethod
+    def scan_group(LockTrigger: SyncModDataSkippIterQueue,
+                   time_sleep_thread: float,
+                   padding: Tuple[int, int],
+                   group_name: str,
+                   token_vk: str,
+                   v: str):
+        """
+        https://vk.com/dev/groups.getMembers - описание метода
+        https://vk.com/dev/objects/user - описания фильтра
+
+        sex = пол
+        city = информация о городе, указанном на странице пользователя в разделе «Контакты». Возвращаются следующие поля:
+        bdate = дата рождения
+        followers_count = количество подписчиков пользователя.
+        relation = семейное положение. Возможные значения:
+                    1 — не женат/не замужем;
+                    2 — есть друг/есть подруга;
+                    3 — помолвлен/помолвлена;
+                    4 — женат/замужем;
+                    5 — всё сложно;
+                    6 — в активном поиске;
+                    7 — влюблён/влюблена;
+                    8 — в гражданском браке;
+                    0 — не указано.
+        can_write_private_message = информация о том, может ли текущий пользователь отправить личное сообщение. Возможные значения:
+                    1 — может;
+                    0 — не может.
+
+        last_seen = time (integer) — время последнего посещения в формате Unixtime.
+        """
+
+        global user_false
+        _LockWriteSql = threading.Lock()
+
+        thread_sq = SqlLiteQrm(f"group/{group_name}.db")
+        counts = 1000
+        offset = padding[0]
+        all_id: list = []
+        while offset <= padding[1]:
+            response = requests.get('https://api.vk.com/method/groups.getMembers', params={
+                "access_token": token_vk,
+                'v': v,
+                "group_id": group_name,
+                'count': counts,
+                'offset': offset,
+                'fields': 'sex,city,bdate,followers_count,relation,can_write_private_message,last_seen'
+            })
+            offset += counts
+            print(padding[1] - offset)
+            try:
+                for i in response.json()['response']['items']:
+                    try:
+                        all_id.append((i['id'],  # id пользователя
+                                       i['sex'],  # Пол
+                                       int(i['bdate'].split('.')[2]),  # Дата рождения
+                                       i['city']['id'],  # Город
+                                       i['can_write_private_message'],  # Возможность писать сообщения
+                                       i['followers_count'],  # Колличество подпищеков
+                                       i['relation'],  # Семеной положение
+                                       i["last_seen"]["time"]  # Дата последнего посещения ВК
+                                       ))
+                    except (IndexError, KeyError):
+                        user_false += 1  # Колличесво пользователи которые не имели таких полей
+            except KeyError:
+                if response.json()["error"]["error_code"] == 6:
+                    print("Слишком много запросов в секнду, данные не полученны с сервера")
+                else:
+                    print(response.json())
+
+            # Сохраняем данные в БД
+            if len(all_id) >= 300 and LockTrigger.is_lock():
+                """
+                Синхранизация записи потоков. Если запись занята потоки будут продолжать 
+                получать даные из интерент и хранить их в ОЗУ
+                """
+                print(f"[INFO] Поток:{time_sleep_thread} - Записывает данные в БД")
+
+                thread_sq.ExecuteManyTable('user', all_id)
+                all_id.clear()
+
+                LockTrigger(lock=False)
+
+            # Псевдо Защита от привышения лимита получения пользователе Вк
+            time.sleep(time_sleep_thread)
+
 
 
 name_group = "https://vk.com/netflix18"
