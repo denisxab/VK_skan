@@ -6,13 +6,11 @@ from typing import Dict, Tuple
 
 import requests
 
-from SyncThread.sync_mod_data import SyncModDataSkippIterQueue, SyncModData
-
-SyncModDataSkippIterQueue.DEBUG_INFO = True
-
 sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
 from sqlliteorm.sqlmodules import *
 from sqlliteorm.sqllite_orm import *
+from sync_thread_pack.sync_mod_data import *
+SyncModDataSkippIterQueue.DEBUG_INFO = True
 
 user_false = 0
 
@@ -238,7 +236,6 @@ class SearchUserInGroup:
 name_group = "https://vk.com/mudakoff"
 
 if __name__ == "__main__":
-
     token = get_my_password(r"C:\Users\denis\PycharmProjects\pythonProject11\config.txt")["token"]
     my_class = SearchUserInGroup(
         token_vk=token,
@@ -246,7 +243,7 @@ if __name__ == "__main__":
         count_thread=3,
         versionApi="5.131")
 
-    #732613 * 3
+    # 732613 * 3
     # if True:
     #     print('===========================')
     #     print(my_class.get_cont_user_group())
