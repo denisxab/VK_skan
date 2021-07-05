@@ -2,11 +2,20 @@
 Создать класс для синхронной записи потоков
 Если запись занята потоки пропускают итерацию
 """
+import random
+import time
 from sys import getsizeof
 from typing import List, Union
 
 
 class SyncModData:
+
+    # Создает потоки
+    @staticmethod
+    def CreateThread(count_thread: int, objectSync) -> \
+            list:
+        return [objectSync(f"Th_{item}") for item in range(1, count_thread)]
+
     def __init__(self, name: str = None):
         self.NameThread = str(name)  # Даем имя
 
@@ -27,6 +36,9 @@ class SyncModData:
         else:
             self.NameThread = self.NameThread[:-1:]
             raise StopIteration
+
+    def is_lock(self):
+        raise NotImplementedError()
 
 
 # Синхронизация потоков в порядке очереди
@@ -220,7 +232,6 @@ class SyncModDataSkippIterSortQueue(SyncModData):
         if not lock:  # Есси поток занял очередь -> Переносим поток в конец очерди
             if SyncModDataSkippIterSortQueue.DEBUG_INFO:
                 print(f"[INFO]\t\t\t{self}: UnLock Write")
-
             try:
                 # Сортируем LockListSort
                 SyncModDataSkippIterSortQueue.LockListSort = sorted(
@@ -237,6 +248,49 @@ class SyncModDataSkippIterSortQueue(SyncModData):
     @LockThread.setter
     def LockThread(self, *, lock_all_thread: bool):
         SyncModDataSkippIterSortQueue.LockAllThread = lock_all_thread
+
+
+class SyncModDataPauseIterQueue(SyncModData):
+    """
+    Останавливает работу все потков пока не будет открыт доступ на запись
+    """
+    LockAllThread: list = [False]  # Глабальная Ссылка видная всем потокам
+    LockList: List[int] = []  # Массив по правилам Очереди
+    DEBUG_INFO: bool = False  # Отображать штформации о потоках
+
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.__id = id(self)
+        self.__LockThread: list = SyncModDataPauseIterQueue.LockAllThread  # Связываем сслыки
+        SyncModDataPauseIterQueue.LockList.append(id(self))  # Образуем очередь из потоков
+
+        # Проверить разрешение потока на запись
+
+    def is_lock(self) -> bool:
+        # Ждать потоку пока не будет открыто на запись
+        while self.__LockThread:
+            if self.__id == SyncModDataPauseIterQueue.LockList[0]:
+                SyncModDataPauseIterQueue.LockAllThread = [True]  # Поменял местами
+                if SyncModDataPauseIterQueue.DEBUG_INFO:
+                    print(f"[INFO]\t\t\t{self}: Lock Write")
+                return True  # Если поток находиться в начале очереди то допусктить, иначе поток пропускает итерацию
+            else:
+                time.sleep(random.uniform(0.2, 1.1))
+
+    def __call__(self, *, lock: bool):
+        if not lock:  # Есси поток занял очередь -> Переносим поток в конец очерди
+            if SyncModDataPauseIterQueue.DEBUG_INFO:
+                print(f"[INFO]\t\t\t{self}: UnLock Write")
+            SyncModDataPauseIterQueue.LockList.append(SyncModDataPauseIterQueue.LockList.pop(0))
+            SyncModDataPauseIterQueue.LockAllThread = [False]
+
+    @property
+    def LockThread(self) -> bool:
+        return self.__LockThread[0]
+
+    @LockThread.setter
+    def LockThread(self, *, lock_all_thread: bool):
+        SyncModDataPauseIterQueue.LockAllThread = lock_all_thread
 
 
 if __name__ == '__main__':
