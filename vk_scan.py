@@ -6,13 +6,14 @@ from typing import Dict, Tuple
 
 import requests
 
-sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
-from sqlliteorm.sqlmodules import *
-from sqlliteorm.sqllite_orm import *
-from sync_thread_pack.sync_mod_data import *
-SyncModDataSkippIterQueue.DEBUG_INFO = True
+sys.path.append(r"C:\Users\denis\PycharmProjects\file")
+from sqllite_orm_pack.sqlmodules import *
+from sqllite_orm_pack.sqllite_orm import *
 
-user_false = 0
+sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
+from sync_thread_pack.sync_mod_data import *
+
+SyncModDataSkippIterQueue.DEBUG_INFO = True
 
 
 def get_my_password(path_config: str) -> Dict[str, str]:
@@ -30,6 +31,7 @@ def get_my_password(path_config: str) -> Dict[str, str]:
 
 
 class SearchUserInGroup:
+    user_false = 0
 
     def __init__(self, token_vk: str, group_name: str,
                  versionApi: str,
@@ -236,7 +238,7 @@ class SearchUserInGroup:
 name_group = "https://vk.com/mudakoff"
 
 if __name__ == "__main__":
-    token = get_my_password(r"C:\Users\denis\PycharmProjects\pythonProject11\config.txt")["token"]
+    token = get_my_password(r"config.txt")["token"]
     my_class = SearchUserInGroup(
         token_vk=token,
         group_name=name_group,

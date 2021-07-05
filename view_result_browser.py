@@ -7,9 +7,9 @@ from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 
 from vk_scan import get_my_password, name_group
 
-sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
-from sqlliteorm.sqlmodules import *
-from sqlliteorm.sqllite_orm import *
+sys.path.append(r"C:\Users\denis\PycharmProjects\file")
+from sqllite_orm_pack.sqlmodules import *
+from sqllite_orm_pack.sqllite_orm import *
 
 
 # Поиск элемента
