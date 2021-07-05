@@ -6,10 +6,9 @@ from typing import Dict, Tuple
 
 import requests
 
-from SyncThread.sync_mod_data import SyncModDataSkippIterQueue,SyncModData
+from SyncThread.sync_mod_data import SyncModDataSkippIterQueue, SyncModData
+
 SyncModDataSkippIterQueue.DEBUG_INFO = True
-
-
 
 sys.path.append(r"C:\Users\denis\PycharmProjects\pall")
 from sqlliteorm.sqlmodules import *
@@ -220,12 +219,12 @@ class SearchUserInGroup:
                     print(response.json())
 
             # Сохраняем данные в БД
-            if len(all_id) >= 300 and LockTrigger.is_lock():
+            if len(all_id) >= counts and LockTrigger.is_lock():
                 """
                 Синхранизация записи потоков. Если запись занята потоки будут продолжать 
                 получать даные из интерент и хранить их в ОЗУ
                 """
-                print(f"[INFO] Поток:{time_sleep_thread} - Записывает данные в БД")
+                print(f"[INFO]\t\t- Записывает данные в БД -")
 
                 thread_sq.ExecuteManyTable('user', all_id)
                 all_id.clear()
@@ -236,8 +235,7 @@ class SearchUserInGroup:
             time.sleep(time_sleep_thread)
 
 
-
-name_group = "https://vk.com/netflix18"
+name_group = "https://vk.com/mudakoff"
 
 if __name__ == "__main__":
 
@@ -248,14 +246,15 @@ if __name__ == "__main__":
         count_thread=3,
         versionApi="5.131")
 
-    if True:
-        print('===========================')
-        print(my_class.get_cont_user_group())
-        print('===========================')
-        my_class.search()
-        print('===========================')
-        print(my_class.get_cont_user_group())
-        print(user_false)
+    #732613 * 3
+    # if True:
+    #     print('===========================')
+    #     print(my_class.get_cont_user_group())
+    #     print('===========================')
+    #     my_class.search()
+    #     print('===========================')
+    #     print(my_class.get_cont_user_group())
+    #     print(user_false)
 
     my_class.show_table(limit_show=3, width_column=10)
     my_class.show_search(limit_show=3, width_column=10)
