@@ -11,7 +11,7 @@ from sqllite_orm_pack.sqlmodules import *
 from sqllite_orm_pack.sqllite_orm import *
 
 sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
-from sync_thread_pack.sync_mod_data import *
+from snyc_mod_data import *
 
 SyncModDataSkippIterQueue.DEBUG_INFO = True
 
