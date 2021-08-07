@@ -1,19 +1,16 @@
+import asyncio
 import os
 import sys
-import threading
 import time
-from typing import Dict, Tuple
+from file.sqllite_orm_pack import SqlLiteQrm
+from file.sqllite_orm_pack.sqlmodules import *
+from typing import Dict, Tuple, List
 
+import httpx
 import requests
 
-sys.path.append(r"C:\Users\denis\PycharmProjects\file")
-from sqllite_orm_pack.sqlmodules import *
-from sqllite_orm_pack.sqllite_orm import *
-
 sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
-from snyc_mod_data import *
-
-SyncModDataSkippIterQueue.DEBUG_INFO = True
+from sync_mod_data import *
 
 
 def get_my_password(path_config: str) -> Dict[str, str]:
@@ -32,6 +29,7 @@ def get_my_password(path_config: str) -> Dict[str, str]:
 
 class SearchUserInGroup:
     user_false = 0
+    all_id: list = []
 
     def __init__(self, token_vk: str, group_name: str,
                  versionApi: str,
@@ -75,10 +73,23 @@ class SearchUserInGroup:
 
         return res['response']['count']
 
-    def search(self):
+    async def main_scan_group(self):
 
+        tasks = []
         time_sleep_thread = 0
-        thread_list = []
+        for x in range(self.count_thread):
+            time_sleep_thread += 0.3
+            tasks.append(
+                SearchUserInGroup.scan_group(
+                    time_sleep_thread,
+                    self.count_offset_thread[x],
+                    self.name_group,
+                    self.token,
+                    self.v))
+
+        await asyncio.gather(*tasks)
+
+    def search(self):
 
         sq = SqlLiteQrm(f"group/{self.name_group}.db")
         sq.DeleteTable(["user", "sorted_users"])
@@ -93,20 +104,7 @@ class SearchUserInGroup:
             'last_seen': toTypeSql(int)
         })
         sq.CreateTable('sorted_users', {'id_user': toTypeSql(int)})
-
-        for x in range(self.count_thread):
-            time_sleep_thread += 0.3
-            t = threading.Thread(target=SearchUserInGroup.scan_group, args=(
-                SyncModDataSkippIterQueue(f"Th_{x}"),
-                time_sleep_thread,
-                self.count_offset_thread[x],
-                self.name_group,
-                self.token,
-                self.v))
-            thread_list.append(t)
-            t.start()
-        for y in thread_list:
-            y.join()
+        asyncio.run(self.main_scan_group())
 
     def show_search(self, limit_show: int = 10, width_column: int = 20):
         now = time.time()
@@ -149,12 +147,11 @@ class SearchUserInGroup:
         sq.Search(Select('user', CountSql("id")).Limit(limit_show), FlagPrint=width_column)
 
     @staticmethod
-    def scan_group(LockTrigger: SyncModDataSkippIterQueue,
-                   time_sleep_thread: float,
-                   padding: Tuple[int, int],
-                   group_name: str,
-                   token_vk: str,
-                   v: str):
+    async def scan_group(time_sleep_thread: float,
+                         padding: Tuple[int, int],
+                         group_name: str,
+                         token_vk: str,
+                         v: str):
         """
         https://vk.com/dev/groups.getMembers - описание метода
         https://vk.com/dev/objects/user - описания фильтра
@@ -180,59 +177,56 @@ class SearchUserInGroup:
         last_seen = time (integer) — время последнего посещения в формате Unixtime.
         """
 
-        global user_false
-        _LockWriteSql = threading.Lock()
+        def saveDb(arr_user: List):
+            # Сохраняем данные в БД
+            if len(arr_user) >= counts:
+                print(f"[INFO]\t{time_sleep_thread}\t- Записывает данные в БД -")
+                thread_sq.ExecuteManyTable('user', arr_user)
+                return True
+            return False
 
         thread_sq = SqlLiteQrm(f"group/{group_name}.db")
         counts = 1000
         offset = padding[0]
-        all_id: list = []
+
         while offset <= padding[1]:
-            response = requests.get('https://api.vk.com/method/groups.getMembers', params={
-                "access_token": token_vk,
-                'v': v,
-                "group_id": group_name,
-                'count': counts,
-                'offset': offset,
-                'fields': 'sex,city,bdate,followers_count,relation,can_write_private_message,last_seen'
-            })
-            offset += counts
+            async with httpx.AsyncClient() as session:
+                responseGet = await session.get('https://api.vk.com/method/groups.getMembers', params={
+                    "access_token": token_vk,
+                    'v': v,
+                    "group_id": group_name,
+                    'count': counts,
+                    'offset': offset,
+                    'fields': 'sex,city,bdate,followers_count,relation,can_write_private_message,last_seen'
+                })
+                responseJson = responseGet.json()
+
             print(padding[1] - offset)
+            offset += counts
             try:
-                for i in response.json()['response']['items']:
+                for i in responseJson['response']['items']:
                     try:
-                        all_id.append((i['id'],  # id пользователя
-                                       i['sex'],  # Пол
-                                       int(i['bdate'].split('.')[2]),  # Дата рождения
-                                       i['city']['id'],  # Город
-                                       i['can_write_private_message'],  # Возможность писать сообщения
-                                       i['followers_count'],  # Колличество подпищеков
-                                       i['relation'],  # Семеной положение
-                                       i["last_seen"]["time"]  # Дата последнего посещения ВК
-                                       ))
+                        SearchUserInGroup.all_id.append((i['id'],  # id пользователя
+                                                         i['sex'],  # Пол
+                                                         int(i['bdate'].split('.')[2]),  # Дата рождения
+                                                         i['city']['id'],  # Город
+                                                         i['can_write_private_message'],  # Возможность писать сообщения
+                                                         i['followers_count'],  # Количество подпищеков
+                                                         i['relation'],  # Семенное положение
+                                                         i["last_seen"]["time"]  # Дата последнего посещения ВК
+                                                         ))
+
                     except (IndexError, KeyError):
-                        user_false += 1  # Колличесво пользователи которые не имели таких полей
+                        SearchUserInGroup.user_false += 1  # Количество пользователи которые не имели таких полей
             except KeyError:
-                if response.json()["error"]["error_code"] == 6:
-                    print("Слишком много запросов в секнду, данные не полученны с сервера")
+                if responseJson["error"]["error_code"] == 6:
+                    print("Слишком много запросов в секунду, данные не полученные с сервера, увеличите задержку")
                 else:
-                    print(response.json())
+                    print(responseJson["error"]["error_code"])
+            if saveDb(SearchUserInGroup.all_id):
+                SearchUserInGroup.all_id.clear()
 
-            # Сохраняем данные в БД
-            if len(all_id) >= counts and LockTrigger.is_lock():
-                """
-                Синхранизация записи потоков. Если запись занята потоки будут продолжать 
-                получать даные из интерент и хранить их в ОЗУ
-                """
-                print(f"[INFO]\t\t- Записывает данные в БД -")
-
-                thread_sq.ExecuteManyTable('user', all_id)
-                all_id.clear()
-
-                LockTrigger(lock=False)
-
-            # Псевдо Защита от привышения лимита получения пользователе Вк
-            time.sleep(time_sleep_thread)
+            await asyncio.sleep(time_sleep_thread)
 
 
 name_group = "https://vk.com/mudakoff"
@@ -246,14 +240,14 @@ if __name__ == "__main__":
         versionApi="5.131")
 
     # 732613 * 3
-    # if True:
-    #     print('===========================')
-    #     print(my_class.get_cont_user_group())
-    #     print('===========================')
-    #     my_class.search()
-    #     print('===========================')
-    #     print(my_class.get_cont_user_group())
-    #     print(user_false)
+    if True:
+        print('===========================')
+        print(my_class.get_cont_user_group())
+        print('===========================')
+        my_class.search()
+        print('===========================')
+        print(my_class.get_cont_user_group())
+        print(SearchUserInGroup.user_false)
 
     my_class.show_table(limit_show=3, width_column=10)
     my_class.show_search(limit_show=3, width_column=10)
