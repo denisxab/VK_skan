@@ -3,8 +3,9 @@ from os import path, makedirs
 from time import time
 # from file.sqllite_orm_pack import SqlLiteQrm
 # from file.sqllite_orm_pack.sqlmodules import *
-from typing import Dict, Tuple, List
+from typing import Tuple, List
 
+from helpful import sync_http_get
 from httpx import AsyncClient
 
 
@@ -12,40 +13,29 @@ from httpx import AsyncClient
 # from sync_mod_data import *
 
 
-def get_my_password(path_config: str) -> Dict[str, str]:
-    try:
-        with open(path_config, 'r') as fl:
-            fl = fl.read().split('\n')
-            if len(fl) == 3:
-
-                return {"token": fl[0], "name": fl[1], "password": fl[2]}
-            else:
-                raise IOError("Неправильный формат ввода пароля")
-
-    except FileNotFoundError:
-        raise IOError("Отсутствует фал config.txt")
-
-
 class SearchUserInGroup:
+    # Сколько юзеров с ошибкой
     user_false = 0
     all_id: list = []
 
-    def __init__(self, token_vk: str, group_name: str,
-                 versionApi: str,
-                 count_thread: int = 1,
-                 limit_get_user_group: int = 0,
-                 ):
+    def __init__(
+            self,
+            token_vk: str,
+            group_name: str,
+            versionApi: str,
+            # count_thread: int = 1,
+            limit_get_user_group: int = 0,
+    ):
         """
         :param token_vk: Токен VK
         :param group_name: ID группы
-        :param count_thread: Кооличесвто потоков проыессора
+        :param limit_get_user_group: Сколько максимум взять  участников (по умолчанию все)
         :param versionApi: Версия VK API
-        :param limit_get_user_group: Колличесво участников по умолчанию все
         """
-        self.token = token_vk
-        self.name_group = group_name if group_name.find("https://vk.com/") == -1 else group_name[15::]
-        self.count_thread = count_thread
-        self.v = versionApi
+        self.token: str = token_vk
+        self.name_group: str = group_name  # if group_name.find("https://vk.com/") == -1 else group_name[15::]
+        # self.count_thread = count_thread
+        self.version_api: str = versionApi
         self.count_user = self.get_cont_user_group() if not limit_get_user_group else limit_get_user_group
 
         makedirs('group') if not path.exists('group') else None
@@ -54,23 +44,29 @@ class SearchUserInGroup:
         self.count_offset_thread = SyncModData.offset_thread(self.count_user, self.count_thread)
 
     def get_cont_user_group(self) -> int:
-        response = requests.get('https://api.vk.com/method/groups.getMembers', params={
-            "access_token": self.token,
-            'v': self.v,
-            "group_id": self.name_group,
-            'count': 1,
-            'offset': 1,
-        })
-        res: dict = response.json()
-        if res.get('error'):
-            if res['error']["error_code"] == 125:
+        """
+        Получить количество подписчиков в группе
+        """
+
+        response: dict = sync_http_get(
+            'https://api.vk.com/method/groups.getMembers',
+            params={
+                "access_token": self.token,
+                'v': self.version_api,
+                "group_id": self.name_group,
+                'count': 1,
+                'offset': 1,
+            }
+        )
+        if response.get('error'):
+            if response['error']["error_code"] == 125:
                 raise ValueError("Неправильный id группы")
-            if res['error']["error_code"] == 5:
+            if response['error']["error_code"] == 5:
                 raise ValueError("У вас Неверный Токен ID")
 
-            raise ValueError(res)
+            raise ValueError(response)
 
-        return res['response']['count']
+        return response['response']['count']
 
     async def main_scan_group(self):
 
@@ -84,7 +80,7 @@ class SearchUserInGroup:
                     self.count_offset_thread[x],
                     self.name_group,
                     self.token,
-                    self.v))
+                    self.version_api))
 
         await gather(*tasks)
 
@@ -226,27 +222,3 @@ class SearchUserInGroup:
                 SearchUserInGroup.all_id.clear()
 
             await sleep(time_sleep_thread)
-
-
-name_group = "https://vk.com/mudakoff"
-
-if __name__ == "__main__":
-    token = get_my_password(r"config.txt")["token"]
-    my_class = SearchUserInGroup(
-        token_vk=token,
-        group_name=name_group,
-        count_thread=3,
-        versionApi="5.131")
-
-    # 732613 * 3
-    if True:
-        print('===========================')
-        print(my_class.get_cont_user_group())
-        print('===========================')
-        my_class.search()
-        print('===========================')
-        print(my_class.get_cont_user_group())
-        print(SearchUserInGroup.user_false)
-
-    my_class.show_table(limit_show=3, width_column=10)
-    my_class.show_search(limit_show=3, width_column=10)
