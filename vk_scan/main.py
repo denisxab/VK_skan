@@ -1,11 +1,12 @@
 import asyncio
+from pathlib import Path
 
 from mg_file import EnvFile
 
+EnvFile(str(Path('./__env.env').resolve())).readAndSetEnv()
+
 from helpful import get_my_password
 from vk_scan import SearchUserInGroup
-
-EnvFile('../__env.env').readAndSetEnv()
 
 
 def search(name_group: str):
