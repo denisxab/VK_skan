@@ -30,4 +30,4 @@ def view():
 
 
 if __name__ == "__main__":
-    search(name_group="https://vk.com/mudakoff")
+    search(name_group="https://vk.com/kinomania")

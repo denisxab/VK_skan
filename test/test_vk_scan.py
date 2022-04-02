@@ -26,7 +26,7 @@ class Test_SearchUserInGroup(unittest.TestCase):
     @unittest.skip("showing class skipping")
     def test_search(self):
         self.my_class.search()
-        self.my_class.get_cont_user_group()
+        self.my_class._get_cont_user_group()
         self.my_class.show_table(limit_show=3, width_column=10)
         self.my_class.show_search(limit_show=3, width_column=10)
 

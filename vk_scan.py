@@ -1,5 +1,5 @@
 from asyncio import sleep, run, gather
-from os import path, makedirs
+from re import match
 from time import time
 # from file.sqllite_orm_pack import SqlLiteQrm
 # from file.sqllite_orm_pack.sqlmodules import *
@@ -23,7 +23,6 @@ class SearchUserInGroup:
             token_vk: str,
             group_name: str,
             versionApi: str,
-            # count_thread: int = 1,
             limit_get_user_group: int = 0,
     ):
         """
@@ -33,21 +32,21 @@ class SearchUserInGroup:
         :param versionApi: Версия VK API
         """
         self.token: str = token_vk
-        self.name_group: str = group_name  # if group_name.find("https://vk.com/") == -1 else group_name[15::]
-        # self.count_thread = count_thread
+        self.name_group: str = [
+            _name
+            for _name in match('https://vk.com/([\w\d_]+)|([\w\d_]+)', group_name).groups()
+            if _name
+        ][0]
         self.version_api: str = versionApi
-        self.count_user = self.get_cont_user_group() if not limit_get_user_group else limit_get_user_group
-
-        makedirs('group') if not path.exists('group') else None
+        self.count_user = self._get_cont_user_group() if not limit_get_user_group else limit_get_user_group
 
         # Отступы по участникам для потоков
-        self.count_offset_thread = SyncModData.offset_thread(self.count_user, self.count_thread)
+        # self.count_offset_thread = SyncModData.offset_thread(self.count_user, self.count_thread)
 
-    def get_cont_user_group(self) -> int:
+    def _get_cont_user_group(self) -> int:
         """
         Получить количество подписчиков в группе
         """
-
         response: dict = sync_http_get(
             'https://api.vk.com/method/groups.getMembers',
             params={
@@ -58,14 +57,13 @@ class SearchUserInGroup:
                 'offset': 1,
             }
         )
+
         if response.get('error'):
             if response['error']["error_code"] == 125:
                 raise ValueError("Неправильный id группы")
             if response['error']["error_code"] == 5:
                 raise ValueError("У вас Неверный Токен ID")
-
             raise ValueError(response)
-
         return response['response']['count']
 
     async def main_scan_group(self):
