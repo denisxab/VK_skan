@@ -1,4 +1,5 @@
 /venv
+/venvs
 /.idea
 /group
 config.txt

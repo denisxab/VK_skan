@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "vk_skan"
+version = "0.1.0"
+description = ""
+authors = ["Ваше Имя <you@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+selenium = "^4.1.3"
+httpx = "^0.22.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

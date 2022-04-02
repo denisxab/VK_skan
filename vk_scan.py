@@ -1,16 +1,15 @@
-import asyncio
-import os
-import sys
-import time
-from file.sqllite_orm_pack import SqlLiteQrm
-from file.sqllite_orm_pack.sqlmodules import *
+from asyncio import sleep, run, gather
+from os import path, makedirs
+from time import time
+# from file.sqllite_orm_pack import SqlLiteQrm
+# from file.sqllite_orm_pack.sqlmodules import *
 from typing import Dict, Tuple, List
 
-import httpx
-import requests
+from httpx import AsyncClient
 
-sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
-from sync_mod_data import *
+
+# sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
+# from sync_mod_data import *
 
 
 def get_my_password(path_config: str) -> Dict[str, str]:
@@ -49,7 +48,7 @@ class SearchUserInGroup:
         self.v = versionApi
         self.count_user = self.get_cont_user_group() if not limit_get_user_group else limit_get_user_group
 
-        os.makedirs('group') if not os.path.exists('group') else None
+        makedirs('group') if not path.exists('group') else None
 
         # Отступы по участникам для потоков
         self.count_offset_thread = SyncModData.offset_thread(self.count_user, self.count_thread)
@@ -87,7 +86,7 @@ class SearchUserInGroup:
                     self.token,
                     self.v))
 
-        await asyncio.gather(*tasks)
+        await gather(*tasks)
 
     def search(self):
 
@@ -104,10 +103,10 @@ class SearchUserInGroup:
             'last_seen': toTypeSql(int)
         })
         sq.CreateTable('sorted_users', {'id_user': toTypeSql(int)})
-        asyncio.run(self.main_scan_group())
+        run(self.main_scan_group())
 
     def show_search(self, limit_show: int = 10, width_column: int = 20):
-        now = time.time()
+        now = time()
         sq = SqlLiteQrm(f"group/{self.name_group}.db")
 
         sq.Search(Select('user', "*").Where("""sex == 1 AND 
@@ -190,7 +189,7 @@ class SearchUserInGroup:
         offset = padding[0]
 
         while offset <= padding[1]:
-            async with httpx.AsyncClient() as session:
+            async with AsyncClient() as session:
                 responseGet = await session.get('https://api.vk.com/method/groups.getMembers', params={
                     "access_token": token_vk,
                     'v': v,
@@ -226,7 +225,7 @@ class SearchUserInGroup:
             if saveDb(SearchUserInGroup.all_id):
                 SearchUserInGroup.all_id.clear()
 
-            await asyncio.sleep(time_sleep_thread)
+            await sleep(time_sleep_thread)
 
 
 name_group = "https://vk.com/mudakoff"
