@@ -23,10 +23,7 @@ def search(name_group: str):
         print(my_class.count_user)
         print('===========================')
         asyncio.run(my_class.search())
-        print('===========================')
-        print(my_class.count_user)
-        print(SearchUserInGroup.user_false)
-    #
+        # print(SearchUserInGroup.user_false)
     # my_class.show_table(limit_show=3, width_column=10)
     # my_class.show_search(limit_show=3, width_column=10)
 

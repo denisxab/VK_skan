@@ -3,7 +3,7 @@ from re import match
 from time import time
 # from file.sqllite_orm_pack import SqlLiteQrm
 # from file.sqllite_orm_pack.sqlmodules import *
-from typing import Tuple, List
+from typing import Tuple, Any
 
 from httpx import AsyncClient
 from logsmal import logger
@@ -132,26 +132,16 @@ class SearchUserInGroup:
         last_seen = time (integer) — время последнего посещения в формате Unixtime.
         """
 
-        async def saveDb(arr_user: List):
+        async def saveDb(arr_user: list[dict[str, Any]]):
             # Сохраняем данные в БД
             if len(arr_user) >= counts:
                 logger.info(f'{time_sleep_thread}', 'Записывает данные в БД')
-
-                sql_ = UsersVk(f_name="Петя", l_name="Федоров")
-
-                _res = _session.execute(insert(UsersVk),
-                                        [
-                                            {"$Атрибут_...$": "$Значение_...$"},
-                                            {"$Атрибут_...$": "$Значение_...$"},
-                                        ]
-                                        )
-
+                sql_ = _session.execute(insert(UsersVk), arr_user)
                 _session.add(sql_)
                 await _session.commit()
                 return True
             return False
 
-        # thread_sq = SqlLiteQrm(f"group/{group_name}.db")
         counts = 1000
         offset = padding[0]
 
@@ -167,7 +157,8 @@ class SearchUserInGroup:
                 })
                 responseJson = responseGet.json()
 
-            print(padding[1] - offset)
+            logger.info(f'{padding[1] - offset}', 'Отступы')
+
             offset += counts
             try:
                 for i in responseJson['response']['items']:
