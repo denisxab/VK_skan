@@ -1,11 +1,11 @@
 from asyncio import run
 from os import environ
+from pathlib import Path
 
 from mg_file import EnvFile
 from sqlalchemy import Integer, Column, ForeignKey, String
-from sqlalchemy.orm import relationship
 
-EnvFile('../__env.env').readAndSetEnv()
+EnvFile(str(Path('../__env.env').resolve())).readAndSetEnv()
 
 from database import SQL, UrlConnect
 
@@ -15,6 +15,7 @@ SQL(UrlConnect.sqllite(environ["DATA_BASE_NAME"]))
 class UsersVk(SQL.Base):
     __tablename__ = 'users_vk'
     id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, index=True, unique=True)
     groups_id = Column(Integer, ForeignKey("group_vk.id", onupdate="CASCADE", ondelete="CASCADE"))
     sex = Column(Integer, )
     bdata = Column(Integer, )
@@ -24,7 +25,7 @@ class UsersVk(SQL.Base):
     relation = Column(Integer, )
     last_seen = Column(Integer, )
 
-    group = relationship("GroupsVk", backref="users_vk")
+    # group = relationship("GroupsVk", backref="users_vk")
 
     def __repr__(self):
         return f"{self.id=},{self.groups_id=}"

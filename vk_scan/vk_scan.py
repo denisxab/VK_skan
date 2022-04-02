@@ -7,6 +7,7 @@ from typing import Tuple, List
 
 from httpx import AsyncClient
 from logsmal import logger
+from sqlalchemy import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import SQL
@@ -75,18 +76,7 @@ class SearchUserInGroup:
     @SQL.get_session_decor
     async def search(self, _session: AsyncSession):
 
-        # sq.CreateTable("user", {
-        #     'id': toTypeSql(int),
-        #     'sex': toTypeSql(int),
-        #     'bdata': toTypeSql(int),
-        #     'city': toTypeSql(int),
-        #     'cwpm': toTypeSql(int),
-        #     'followers': toTypeSql(int),
-        #     'relation': toTypeSql(int),
-        #     'last_seen': toTypeSql(int)
-        # })
-        # sq.CreateTable('sorted_users', {'id_user': toTypeSql(int)})
-
+        # Создаем группу
         sql_ = GroupsVk(name_group=self.name_group)
         _session.add(sql_)
         await _session.commit()
@@ -148,6 +138,14 @@ class SearchUserInGroup:
                 logger.info(f'{time_sleep_thread}', 'Записывает данные в БД')
 
                 sql_ = UsersVk(f_name="Петя", l_name="Федоров")
+
+                _res = _session.execute(insert(UsersVk),
+                                        [
+                                            {"$Атрибут_...$": "$Значение_...$"},
+                                            {"$Атрибут_...$": "$Значение_...$"},
+                                        ]
+                                        )
+
                 _session.add(sql_)
                 await _session.commit()
                 return True
@@ -175,16 +173,16 @@ class SearchUserInGroup:
                 for i in responseJson['response']['items']:
                     try:
                         SearchUserInGroup.all_id.append(
-                            (
-                                i['id'],  # id пользователя
-                                i['sex'],  # Пол
-                                int(i['bdate'].split('.')[2]),  # Дата рождения
-                                i['city']['id'],  # Город
-                                i['can_write_private_message'],  # Возможность писать сообщения
-                                i['followers_count'],  # Количество подписчиков
-                                i['relation'],  # Семенное положение
-                                i["last_seen"]["time"]  # Дата последнего посещения ВК
-                            )
+                            {
+                                'user_id': i['id'],  # id пользователя
+                                'sex': i['sex'],  # Пол
+                                'bdata': int(i['bdate'].split('.')[2]),  # Дата рождения
+                                'city': i['city']['id'],  # Город
+                                'cwpm': i['can_write_private_message'],  # Возможность писать сообщения
+                                'followers': i['followers_count'],  # Количество подписчиков
+                                'relation': i['relation'],  # Семенное положение
+                                'last_seen': i["last_seen"]["time"]  # Дата последнего посещения ВК
+                            }
                         )
 
                     except (IndexError, KeyError):
