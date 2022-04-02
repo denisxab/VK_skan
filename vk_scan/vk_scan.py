@@ -5,8 +5,10 @@ from time import time
 # from file.sqllite_orm_pack.sqlmodules import *
 from typing import Tuple, List
 
-from helpful import sync_http_get
 from httpx import AsyncClient
+
+from database import SqlLiteQrm, get_session_decor
+from helpful import sync_http_get
 
 
 # sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
@@ -38,10 +40,7 @@ class SearchUserInGroup:
             if _name
         ][0]
         self.version_api: str = versionApi
-        self.count_user = self._get_cont_user_group() if not limit_get_user_group else limit_get_user_group
-
-        # Отступы по участникам для потоков
-        # self.count_offset_thread = SyncModData.offset_thread(self.count_user, self.count_thread)
+        self.count_user: int = self._get_cont_user_group() if not limit_get_user_group else limit_get_user_group
 
     def _get_cont_user_group(self) -> int:
         """
@@ -82,10 +81,9 @@ class SearchUserInGroup:
 
         await gather(*tasks)
 
-    def search(self):
+    @get_session_decor
+    async def search(self):
 
-        sq = SqlLiteQrm(f"group/{self.name_group}.db")
-        sq.DeleteTable(["user", "sorted_users"])
         sq.CreateTable("user", {
             'id': toTypeSql(int),
             'sex': toTypeSql(int),

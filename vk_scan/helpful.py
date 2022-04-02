@@ -1,4 +1,4 @@
-import asyncio
+from asyncio import run
 from json import load
 from typing import Dict, Any
 
@@ -27,4 +27,4 @@ def sync_http_get(url: str, params: dict[str, Any]):
             responseGet = await session.get(url, params=params)
             return responseGet.json()
 
-    return asyncio.run(__self())
+    return run(__self())
