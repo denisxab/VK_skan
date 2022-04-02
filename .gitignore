@@ -3,3 +3,5 @@
 /.idea
 /group
 config.json
+/vk_scan/vk.db
+/__env.env

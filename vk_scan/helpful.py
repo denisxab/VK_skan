@@ -5,6 +5,27 @@ from typing import Dict, Any
 from httpx import AsyncClient
 
 
+def offset_array(countItem, countThread) -> list[tuple[int, int]]:
+    """
+    >>> offset_array(998, 4)
+    [(0, 249), (249, 498), (498, 747), (747, 998)]
+    """
+
+    mid = countItem // countThread
+    start: int = 0
+    end: int = mid
+
+    res: list[tuple[int, int]] = []
+    for x in range(0, countThread - 1):
+        res.append((start, end))
+        start = end
+        end += mid
+    else:
+        res.append((start, countItem))
+
+    return res
+
+
 def get_my_password(path_config: str) -> Dict[str, str]:
     """
     Получить токен username и пароль

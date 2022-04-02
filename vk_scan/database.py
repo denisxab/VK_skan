@@ -1,10 +1,13 @@
 from typing import Any
 
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncConnection
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm.decl_api import DeclarativeMeta
+try:
+    from sqlalchemy import text
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncConnection
+    from sqlalchemy.ext.declarative import declarative_base
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.orm.decl_api import DeclarativeMeta
+except ImportError:
+    pass
 
 
 class UrlConnect:
