@@ -5,7 +5,7 @@ from pathlib import Path
 from mg_file import EnvFile
 from sqlalchemy import Integer, Column, ForeignKey, String
 
-EnvFile(str(Path('../__env.env').resolve())).readAndSetEnv()
+EnvFile(str(Path('__env.env').resolve())).readAndSetEnv()
 
 from database import SQL, UrlConnect
 
@@ -34,7 +34,7 @@ class UsersVk(SQL.Base):
 class GroupsVk(SQL.Base):
     __tablename__ = 'group_vk'
     id = Column(Integer, primary_key=True)
-    name_group = Column(String(255), nullable=False)
+    name_group = Column(String(255), index=True, nullable=False, unique=True)
 
     def __repr__(self):
         return f"{self.id=},{self.name_group=}"

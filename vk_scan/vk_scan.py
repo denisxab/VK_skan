@@ -1,19 +1,15 @@
 from asyncio import sleep, gather
 from re import match
 from time import time
-# from file.sqllite_orm_pack import SqlLiteQrm
-# from file.sqllite_orm_pack.sqlmodules import *
-from typing import Tuple, Any
+from typing import Tuple
 
 from httpx import AsyncClient
 from logsmal import logger
-from sqlalchemy import insert
+from sqlalchemy import insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database import SQL
+from database import SQL, SqlScript, SqlLite
 from helpful import sync_http_get, offset_array
-# sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
-# from sync_mod_data import *
 from model import GroupsVk, UsersVk
 
 
@@ -28,7 +24,7 @@ class SearchUserInGroup:
             group_name: str,
             versionApi: str,
             limit_get_user_group: int = 0,
-            count_coroutine: int = 10,
+            count_coroutine: int = 5,
     ):
         """
         :param token_vk: Токен VK
@@ -70,16 +66,14 @@ class SearchUserInGroup:
             raise ValueError(response)
         return response['response']['count']
 
-    async def main_scan_group(self):
-        ...
-
     @SQL.get_session_decor
     async def search(self, _session: AsyncSession):
 
-        # Создаем группу
-        sql_ = GroupsVk(name_group=self.name_group)
-        _session.add(sql_)
-        await _session.commit()
+        response: GroupsVk = await SqlScript.set_row_if_not_unique(
+            sql_get=select(GroupsVk).where(GroupsVk.name_group == self.name_group),
+            sql_set=GroupsVk(name_group=self.name_group),
+            _session=_session
+        )
 
         tasks = []
         time_sleep_thread = 0
@@ -91,7 +85,8 @@ class SearchUserInGroup:
                     self.count_offset_thread[x],
                     self.name_group,
                     self.token,
-                    self.version_api
+                    self.version_api,
+                    groups_id=response.id
                 )
             )
 
@@ -105,6 +100,7 @@ class SearchUserInGroup:
             group_name: str,
             token_vk: str,
             v: str,
+            groups_id: int,
             _session: AsyncSession
     ):
         """
@@ -132,21 +128,21 @@ class SearchUserInGroup:
         last_seen = time (integer) — время последнего посещения в формате Unixtime.
         """
 
-        async def saveDb(arr_user: list[dict[str, Any]]):
+        async def save_db():
             # Сохраняем данные в БД
-            if len(arr_user) >= counts:
-                logger.info(f'{time_sleep_thread}', 'Записывает данные в БД')
-                sql_ = _session.execute(insert(UsersVk), arr_user)
-                _session.add(sql_)
+            if len(all_id) >= counts:
+                await _session.execute(insert(UsersVk, prefixes=[SqlLite.prefixes_ignore_insert]), all_id)
                 await _session.commit()
-                return True
-            return False
+                logger.info(f'{time_sleep_thread}', 'Записывает данные в БД')
+                # Если данные записанные в БД, то отчищаем массив
+                all_id.clear()
 
         counts = 1000
         offset = padding[0]
+        all_id = []
 
         while offset <= padding[1]:
-            async with AsyncClient() as session:
+            async with AsyncClient(timeout=20) as session:
                 responseGet = await session.get('https://api.vk.com/method/groups.getMembers', params={
                     "access_token": token_vk,
                     'v': v,
@@ -163,7 +159,7 @@ class SearchUserInGroup:
             try:
                 for i in responseJson['response']['items']:
                     try:
-                        SearchUserInGroup.all_id.append(
+                        all_id.append(
                             {
                                 'user_id': i['id'],  # id пользователя
                                 'sex': i['sex'],  # Пол
@@ -172,7 +168,8 @@ class SearchUserInGroup:
                                 'cwpm': i['can_write_private_message'],  # Возможность писать сообщения
                                 'followers': i['followers_count'],  # Количество подписчиков
                                 'relation': i['relation'],  # Семенное положение
-                                'last_seen': i["last_seen"]["time"]  # Дата последнего посещения ВК
+                                'last_seen': i["last_seen"]["time"],  # Дата последнего посещения ВК
+                                'groups_id': groups_id,
                             }
                         )
 
@@ -181,12 +178,14 @@ class SearchUserInGroup:
             except KeyError:
                 if responseJson["error"]["error_code"] == 6:
                     print("Слишком много запросов в секунду, данные не полученные с сервера, увеличите задержку")
+                    # Проходим заново
+                    offset -= counts
+                    logger.warning(f'{padding[1] - offset}', ' Проходим заново')
+                    await sleep(time_sleep_thread)
                 else:
                     print(responseJson["error"]["error_code"])
 
-            if await saveDb(SearchUserInGroup.all_id):
-                SearchUserInGroup.all_id.clear()
-
+            await save_db()
             await sleep(time_sleep_thread)
 
     def show_search(self, limit_show: int = 10, width_column: int = 20):

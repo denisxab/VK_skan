@@ -4,4 +4,4 @@
 /group
 config.json
 /vk_scan/vk.db
-/__env.env
+/vk_scan/__env.env
