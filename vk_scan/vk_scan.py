@@ -11,11 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import SQL
 from helpful import sync_http_get, offset_array
-
-
 # sys.path.append(r"C:\Users\denis\PycharmProjects\sync_thread")
 # from sync_mod_data import *
-from model import GroupsVk
+from model import GroupsVk, UsersVk
 
 
 class SearchUserInGroup:
@@ -75,7 +73,7 @@ class SearchUserInGroup:
         ...
 
     @SQL.get_session_decor
-    async def search(self):
+    async def search(self, _session: AsyncSession):
 
         # sq.CreateTable("user", {
         #     'id': toTypeSql(int),
@@ -89,9 +87,7 @@ class SearchUserInGroup:
         # })
         # sq.CreateTable('sorted_users', {'id_user': toTypeSql(int)})
 
-
-
-        sql_ = GroupsVk(f_name="Петя", l_name="Федоров")
+        sql_ = GroupsVk(name_group=self.name_group)
         _session.add(sql_)
         await _session.commit()
 

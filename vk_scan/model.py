@@ -33,7 +33,7 @@ class UsersVk(SQL.Base):
 class GroupsVk(SQL.Base):
     __tablename__ = 'group_vk'
     id = Column(Integer, primary_key=True)
-    name_group = Column(String(600), nullable=False)
+    name_group = Column(String(255), nullable=False)
 
     def __repr__(self):
         return f"{self.id=},{self.name_group=}"
