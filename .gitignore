@@ -5,3 +5,4 @@
 config.json
 /vk_scan/vk.db
 /vk_scan/__env.env
+/vk_scan/group/

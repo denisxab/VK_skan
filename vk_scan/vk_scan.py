@@ -17,7 +17,6 @@ from model import GroupsVk, UsersVk
 class SearchUserInGroup:
     # Сколько юзеров с ошибкой
     user_false = 0
-    all_id: list = []
 
     def __init__(
             self,
@@ -131,12 +130,11 @@ class SearchUserInGroup:
 
         async def save_db():
             # Сохраняем данные в БД
-            if len(all_id) >= counts:
-                await _session.execute(insert(UsersVk, prefixes=[SqlLite.prefixes_ignore_insert]), all_id)
-                await _session.commit()
-                logger.info(f'{time_sleep_thread}', 'Записывает данные в БД')
-                # Если данные записанные в БД, то отчищаем массив
-                all_id.clear()
+            await _session.execute(insert(UsersVk, prefixes=[SqlLite.prefixes_ignore_insert]), all_id)
+            await _session.commit()
+            logger.info(f'{time_sleep_thread}', 'Записывает данные в БД')
+            # Если данные записанные в БД, то отчищаем массив
+            all_id.clear()
 
         counts = 1000
         offset = padding[0]
@@ -186,8 +184,11 @@ class SearchUserInGroup:
                 else:
                     print(responseJson["error"]["error_code"])
 
-            await save_db()
+            if len(all_id) >= counts:
+                await save_db()
             await sleep(time_sleep_thread)
+
+        await save_db()
 
     @staticmethod
     @SQL.get_session_decor

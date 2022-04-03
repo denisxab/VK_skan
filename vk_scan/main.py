@@ -14,7 +14,7 @@ def search(name_group: str):
         token_vk=token,
         group_name=name_group,
         versionApi="5.131",
-        limit_get_user_group=10_000
+        limit_get_user_group=20_000
     )
 
     print(my_class.count_user)
