@@ -1,21 +1,23 @@
-import time
-from tkinter import *
+import asyncio
+# from tkinter import *
 from typing import List
 
 from selenium import webdriver
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.remote.webelement import WebElement
+from sqlalchemy import select
+from sqlalchemy.engine import ChunkedIteratorResult, Row
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from vk_scan import get_my_password, name_group
-
-sys.path.append(r"C:\Users\denis\PycharmProjects\file")
-from sqllite_orm_pack.sqlmodules import *
-from sqllite_orm_pack.sqllite_orm import *
-
-
+from database import SQL
+from helpful import get_my_password
 # Поиск элемента
+from model import GroupsVk, UsersVk
+from selenium_helpful import Browser
+
+
 def CLR_Html(browser: webdriver, Name: str) -> str:
     """
-    a = CLR_Html(self.b, ['page_name', 'profile_message_send', 'profile_action_btn', 'profile_msg_split'])
+    a = CLR_Html(self.browser, ['page_name', 'profile_message_send', 'profile_action_btn', 'profile_msg_split'])
     print(a)
     :param Name:
     :param browser:
@@ -83,57 +85,63 @@ def CLR_Html(browser: webdriver, Name: str) -> str:
 
 class SeeUser:
     def __init__(self, name_db: str, userName: str, password: str, view_favorite_profiles: bool):
-        self.name_db = "group/{0}.db".format(name_db if name_db.find("https://vk.com/") == -1 else name_db[15::])
-        self.name_table = "sorted_users"
-        self.sq = SqlLiteQrm(self.name_db)
-        self.sq.CreateTable("like_user", {"id_like": toTypeSql(int)})
-        self.vk_clr = self.ReadDB(view_favorite_profiles)
+        self.vk_clr: list[Row] = asyncio.run(self.ReadDB(view_favorite_profiles))
+        ViewSee(self.vk_clr, userName, password)
 
-        ViewSee(self.vk_clr, self.sq, userName, password)
-
-    def ReadDB(self, Lik: bool) -> List[str]:
+    @SQL.get_session_decor
+    async def ReadDB(self, Lik: bool, _session: AsyncSession) -> List[str]:
         if Lik:
-            vk_clr = list(map(lambda x: x[0], self.sq.GetTable("like_user")))
-            if len(vk_clr) == 0:
-                raise IndexError("Таблциа 'like_user' пустая")
+            raise ValueError
+            # vk_clr = list(map(lambda x: x[0], self.sq.GetTable("like_user")))
+            # if len(vk_clr) == 0:
+            #     raise IndexError("Таблциа 'like_user' пустая")
         else:
-            vk_clr = list(map(lambda x: x[0], self.sq.GetTable(self.name_table)))
-        return vk_clr
+            sql_ = select(UsersVk).where(
+                UsersVk.groups_id == select(GroupsVk.id).where(
+                    GroupsVk.name_group == 'kinomania'
+                )
+            )
+            vk_clr: ChunkedIteratorResult = await  _session.execute(sql_)
+        return vk_clr.fetchall()
 
-    def DeleteTableLikeUser(self):
-        self.sq.DeleteTable("like_user")
+
+from fake_useragent import UserAgent
+
+ua = UserAgent()
 
 
 class ViewSee:
-    def __init__(self,
-                 vk_clr: List[str],
-                 sq: SqlLiteQrm,
-                 userName: str,
-                 password: str
-                 ):
+    def __init__(
+            self,
+            vk_clr: list[Row],
+            user_name: str,
+            password: str
+    ):
         self.vk_clr = vk_clr
-        self.sq = sq
-
         self.i = -1
         self.p = len(self.vk_clr)
 
-        caps = DesiredCapabilities().CHROME
-        caps["pageLoadStrategy"] = "eager"
-        self.b = webdriver.Chrome(
-            desired_capabilities=caps, executable_path="chromedriver.exe")
-        self.__open_vk(userName, password)
+        self.browser = Browser(executable_path='./geckodriver', options=options)
+        self._open_vk(user_name, password)
 
-    def __open_vk(self, userName: str, password: str):
-        try:
-            self.b.get('https://vk.com/im')
-            self.b.find_element_by_id('email').send_keys(userName)
-            self.b.find_element_by_id('pass').send_keys(password)
-            self.b.find_element_by_id('login_button').click()
-            time.sleep(1)
+    def _open_vk(self, userName: str, password: str):
 
-        except NameError:
-            self.b.find_element_by_name("box_x_button").click()
-        self.__windows()
+        self.browser.driver.get('https://vk.com/feed')
+
+        bt_login: WebElement = self.browser.driver.find_element_by_class_name(
+            'FlatButton.FlatButton--primary.FlatButton--size-l.FlatButton--wide.VkIdForm__button.VkIdForm__signInButton'
+        )
+        if bt_login:
+            bt_login.click()
+            self.browser.driver.find_element_by_css_selector('.vkc__TextField__input[name="login"]').send_keys(userName)
+            self.browser.driver.find_element_by_css_selector('.vkc__Button__title').click()
+            self.browser.driver.find_element_by_css_selector('.vkc__TextField__input[name="password"]').send_keys(
+
+                password
+            )
+            self.browser.driver.find_element_by_css_selector(
+                '.vkc__Button__container.vkc__Button__primary.vkc__Button__fluid[type="submit"]'
+            ).click()
 
     def __windows(self):
         self.windowTk = Tk()
@@ -168,6 +176,7 @@ class ViewSee:
         self.windowTk.mainloop()
 
     def favorite(self):
+
         self.sq.ExecuteTable("like_user", self.vk_clr[self.i])
         self.lab0['text'] = '||||||||||||||||||||||||||||||||||'
         self.windowTk.update()
@@ -181,7 +190,7 @@ class ViewSee:
         self.lab0['text'] = '{}\n-{}-'.format(
             self.vk_clr[self.i], self.p - self.i)
         self.windowTk.update()
-        self.b.get('https://vk.com/id{}'.format(self.vk_clr[self.i]))
+        self.browser.get('https://vk.com/id{}'.format(self.vk_clr[self.i]))
 
     def left(self, garbageBindTkinter=0):
 
@@ -193,11 +202,11 @@ class ViewSee:
         self.lab0['text'] = '{}\n-{}-'.format(
             self.vk_clr[self.i], self.p - self.i)
         self.windowTk.update()
-        self.b.get('https://vk.com/id{}'.format(self.vk_clr[self.i]))
+        self.browser.get('https://vk.com/id{}'.format(self.vk_clr[self.i]))
 
     def on_closed(self):
         self.windowTk.destroy()
-        self.b.close()
+        self.browser.close()
 
     def set_message(self):
         pass
@@ -205,17 +214,17 @@ class ViewSee:
         #     with open('text_mail.txt', 'r') as file_text:
         #         tExt_send_massage = ' '.join(re.findall(
         #             re.compile('[^\n]+'), file_text.read()))
-        #         name_user_set_massage = self.b.find_element_by_class_name(
+        #         name_user_set_massage = self.browser.find_element_by_class_name(
         #             'page_name').text.split(' ')[0]
         #
         #         try:
-        #             self.b.find_element_by_id('profile_message_send').click()
+        #             self.browser.find_element_by_id('profile_message_send').click()
         #         except selenium.common.exceptions.ElementNotInteractableException:
-        #             self.b.get(
+        #             self.browser.get(
         #                 'https://vk.com/id{}'.format(self.vk_clr[self.i]))
-        #             self.b.find_element_by_id('profile_message_send').click()
+        #             self.browser.find_element_by_id('profile_message_send').click()
         #
-        #         self.b.find_element_by_id('mail_box_editable').send_keys(
+        #         self.browser.find_element_by_id('mail_box_editable').send_keys(
         #             'Привет {}, {}'.format(name_user_set_massage, tExt_send_massage))
         #
         # except FileNotFoundError:
@@ -224,9 +233,11 @@ class ViewSee:
 
 
 if __name__ == "__main__":
-    name_group = name_group  # Можно изментять
-    dt = get_my_password("config.txt")
-    SeeUser(name_db=name_group,
-            userName=dt["name"],
-            password=dt["password"],
-            view_favorite_profiles=False)
+    name_group = "https://vk.com/kinomania"
+    dt = get_my_password("config.json")
+    SeeUser(
+        name_db=name_group,
+        userName=dt["name"],
+        password=dt["password"],
+        view_favorite_profiles=False
+    )

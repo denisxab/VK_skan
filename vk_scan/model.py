@@ -13,6 +13,7 @@ SQL(UrlConnect.sqllite(environ["DATA_BASE_NAME"]))
 
 
 class UsersVk(SQL.Base):
+    """Пользователи"""
     __tablename__ = 'users_vk'
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, index=True, unique=True)
@@ -32,12 +33,24 @@ class UsersVk(SQL.Base):
 
 
 class GroupsVk(SQL.Base):
+    """Группы"""
     __tablename__ = 'group_vk'
     id = Column(Integer, primary_key=True)
     name_group = Column(String(255), index=True, nullable=False, unique=True)
 
     def __repr__(self):
         return f"{self.id=},{self.name_group=}"
+
+
+class LikeUser(SQL.Base):
+    """Лайки"""
+    __tablename__ = 'like_user'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users_vk.id", onupdate="CASCADE", ondelete="CASCADE"))
+
+    def __repr__(self):
+        return f"{self.id=},{self.user_id=}"
 
 
 if __name__ == '__main__':

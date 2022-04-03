@@ -11,6 +11,8 @@ httpx = "^0.22.0"
 SQLAlchemy = "^1.4.34"
 mg-file = "^0.1.24"
 aiosqlite = "^0.17.0"
+fake-useragent = "^0.1.11"
+selenium-wire = "^4.6.3"
 
 [tool.poetry.dev-dependencies]
 
