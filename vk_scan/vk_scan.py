@@ -6,6 +6,7 @@ from typing import Tuple
 from httpx import AsyncClient
 from logsmal import logger
 from sqlalchemy import insert, select
+from sqlalchemy.engine import ChunkedIteratorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import SQL, SqlScript, SqlLite
@@ -188,42 +189,20 @@ class SearchUserInGroup:
             await save_db()
             await sleep(time_sleep_thread)
 
-    def show_search(self, limit_show: int = 10, width_column: int = 20):
-        now = time()
-        sq = SqlLiteQrm(f"group/{self.name_group}.db")
+    @staticmethod
+    @SQL.get_session_decor
+    async def show_search(_session: AsyncSession):
+        now = time() - 604800
 
-        sq.Search(Select('user', "*").Where("""sex == 1 AND 
-        bdata BETWEEN 1999 AND 
-        2001 AND city == 2 AND 
-        cwpm == 1 AND 
-        followers <= 800 AND 
-        (relation == 0 OR relation == 6 OR relation == 1) AND 
-        last_seen >={0}
-        """.format(now - 604800)).Limit(limit_show), FlagPrint=width_column)
+        sql_ = select(UsersVk).where(
+            (UsersVk.sex == 1) &
+            (UsersVk.bdata.between(1999, 2001)) &
+            (UsersVk.city == 2) &
+            (UsersVk.cwpm == 1) &
+            (UsersVk.followers <= 800) &
+            ((UsersVk.relation == 0) | (UsersVk.relation == 6) | (UsersVk.relation == 1)) &
+            (UsersVk.last_seen >= now)
+        )
 
-        sq.Search(Select('user', CountSql("id")).Where("""
-                sex == 1 AND 
-                bdata BETWEEN 1999 AND 
-                2001 AND city == 2 AND 
-                cwpm == 1 AND 
-                followers <= 800 AND 
-                (relation == 0 OR relation == 6 OR relation == 1) AND 
-                last_seen >={0}
-                """.format(now - 604800)), FlagPrint=width_column)
-
-        sq.ExecuteTable('sorted_users', sqlRequest=Select('user', "id").Where("""
-        sex == 1 AND 
-        bdata BETWEEN 1999 AND 
-        2001 AND city == 2 AND 
-        cwpm == 1 AND 
-        followers <= 800 AND 
-        (relation == 0 OR relation == 6 OR relation == 1) AND 
-        last_seen >={0}
-        """.format(now - 604800)).Request)
-
-        sq.GetTable('sorted_users', LIMIT=(10, 0), FlagPrint=12)
-
-    def show_table(self, limit_show: int = 10, width_column: int = 20):
-        sq = SqlLiteQrm(f"group/{self.name_group}.db")
-        sq.Search(Select('user', "*").Limit(limit_show), FlagPrint=width_column)
-        sq.Search(Select('user', CountSql("id")).Limit(limit_show), FlagPrint=width_column)
+        res: ChunkedIteratorResult = await _session.execute(sql_)
+        return res.fetchall()

@@ -13,23 +13,22 @@ def search(name_group: str):
     my_class = SearchUserInGroup(
         token_vk=token,
         group_name=name_group,
-        versionApi="5.131"
+        versionApi="5.131",
+        limit_get_user_group=10_000
     )
 
-    # 732613 * 3
-    if True:
-        print('===========================')
-        print(my_class.count_user)
-        print('===========================')
-        asyncio.run(my_class.search())
-        # print(SearchUserInGroup.user_false)
+    print(my_class.count_user)
+    asyncio.run(my_class.search())
+    # print(SearchUserInGroup.user_false)
     # my_class.show_table(limit_show=3, width_column=10)
     # my_class.show_search(limit_show=3, width_column=10)
 
 
 def view():
     ...
+    asyncio.run(SearchUserInGroup.show_search())
 
 
 if __name__ == "__main__":
     search(name_group="https://vk.com/kinomania")
+    # view()

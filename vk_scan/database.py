@@ -162,10 +162,12 @@ class SqlScript:
     async def set_row_if_not_unique(cls, sql_get, sql_set, _session: AsyncSession):
         """
         Вставить запись если она не уникальная
+
+         :return: Запись
         """
         # Проверяем наличие записи в БД
         response = await _session.execute(sql_get)
-        sql_obj = response.first()[0]
+        sql_obj = response.first()
         if not sql_obj:
             # Если записи нет, то добавляем ей в БД
             _session.add(sql_set)
@@ -173,4 +175,4 @@ class SqlScript:
             return sql_set
         else:
             # Если он есть, то возвращаем полученный объект
-            return sql_obj
+            return sql_obj[0]
