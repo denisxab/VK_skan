@@ -42,14 +42,10 @@ def collect_user_from_group_vk(name_group: str, token: str):
 
 def view(type_view: Literal['all', 'like']):
     """
-    Показать и записать в файл, подходящих пользовательниц
-    
+    Запустить отображение в силениуме
+
     type_view: all-Все пользователи. like-только отлайканные
     """
-    ##
-    # Запустить силениум
-    ##
-
     match type_view:
         case 'like':
             list_all_user_vk = asyncio.run(show_like_users())
@@ -72,7 +68,7 @@ def view(type_view: Literal['all', 'like']):
 
 def create_table():
     """
-    Создать Таблицы  
+    Создать Таблицы в БД
     """
     asyncio.run(SQL.create_models(
         [GroupsVk, UsersVk, LikeUser]
@@ -80,6 +76,6 @@ def create_table():
 
 
 if __name__ == "__main__":
-    # search(name_group= "https://vk.com/kinomania",token)
     # create_table()
-    view('all')
+    collect_user_from_group_vk(name_group="https://vk.com/kinomania", token)
+    # view('all')
