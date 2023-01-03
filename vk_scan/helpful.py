@@ -5,9 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from httpx import AsyncClient
 from mg_sql.sql_async.base import SQL
 
+from model_db import TUserVk
+
 #
 ################################################################
 #
+
+
 def offset_array(countItem, countThread) -> list[tuple[int, int]]:
     """
     >>> offset_array(998, 4)
@@ -30,6 +34,8 @@ def offset_array(countItem, countThread) -> list[tuple[int, int]]:
 #
 ################################################################
 #
+
+
 def get_my_password(path_config: str) -> Dict[str, str]:
     """
     Получить токен username и пароль
@@ -47,6 +53,8 @@ def get_my_password(path_config: str) -> Dict[str, str]:
 #
 ################################################################
 #
+
+
 def sync_http_get(url: str, params: dict[str, Any]):
     async def __self():
         async with AsyncClient() as session:
@@ -56,8 +64,10 @@ def sync_http_get(url: str, params: dict[str, Any]):
 #
 ################################################################
 #
+
+
 @SQL.get_session_decor
-async def show_necessary_users(_session: AsyncSession)->list[dict]:
+async def show_necessary_users(_session: AsyncSession) -> list[TUserVk]:
     """
     Показать подходящих пользовательниц
     """
@@ -80,5 +90,23 @@ async def show_necessary_users(_session: AsyncSession)->list[dict]:
         and bdata BETWEEN 1993 and 2005 
     ORDER by bdata desc; 
     """
-    res = await SQL.read_execute_raw_sql(_session, raw_sql=sql_) 
+    res = await SQL.read_execute_raw_sql(_session, raw_sql=sql_)
+    return res
+#
+################################################################
+#
+
+
+@SQL.get_session_decor
+async def show_like_users(_session: AsyncSession) -> list[TUserVk]:
+    """
+    Показать отлайканых пользовательниц
+    """
+    sql_ = """
+    select uv.*
+    FROM like_user lu 
+    join users_vk uv on uv.user_id=lu.user_id 
+    order by lu.id 
+    """
+    res = await SQL.read_execute_raw_sql(_session, raw_sql=sql_)
     return res

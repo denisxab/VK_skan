@@ -38,18 +38,20 @@ class CollectUserFomGroup:
         # Версия API
         self.version_api: str = versionApi
         # Сколько пользователей нужно получить из группы
-        self.count_user: int = self._get_cont_user_group() if not limit_get_user_group else limit_get_user_group
+        self.count_user: int = self._get_cont_user_group(
+        ) if not limit_get_user_group else limit_get_user_group
         # Сколько сделать асинхронных карутин
         self.count_coroutine = count_coroutine
         # Отступы для карутин
-        self._count_offset_thread = offset_array(self.count_user, self.count_coroutine)
+        self._count_offset_thread = offset_array(
+            self.count_user, self.count_coroutine)
 
     async def run(self):
         """
         Начать сбор информации из группы, параллельно в нескольких карутинах
         """
         # Создаем группу в БД
-        groups_id=await self._AddGroupIfNotExist(self.name_group)
+        groups_id = await self._AddGroupIfNotExist(self.name_group)
         # Создаем асинхронные задачи
         tasks = []
         time_sleep_thread = 0
@@ -82,7 +84,7 @@ class CollectUserFomGroup:
     ):
         """
         Зада для каждой карутины по сбору данных в группе
-        
+
         https://vk.com/dev/groups.getMembers - описание метода
         https://vk.com/dev/objects/user - описания фильтра
 
@@ -114,9 +116,9 @@ class CollectUserFomGroup:
             await SQL.write_execute_raw_sql(_session, raw_sql="""
             insert or REPLACE into users_vk (user_id,groups_id,sex,bdata,city,cwpm,followers,relation,last_seen,time_add) values {I};
             """.format(I=','.join(
-                    f"({x['user_id']},{x['groups_id']},{x['sex']},{x['bdata']},{x['city']},{x['cwpm']},{x['followers']},{x['relation']},{x['last_seen']},{int(time())})" 
-                    for x in all_id
-                )
+                f"({x['user_id']},{x['groups_id']},{x['sex']},{x['bdata']},{x['city']},{x['cwpm']},{x['followers']},{x['relation']},{x['last_seen']},{int(time())})"
+                for x in all_id
+            )
             ))
             logger.info(f'{time_sleep_thread}', ['Записывает данные в БД'])
             # Если данные записанные в БД, то отчищаем массив
@@ -148,8 +150,8 @@ class CollectUserFomGroup:
                 # Парсим ответ
                 for i in responseJson['response']['items']:
                     try:
-                        bdate=int(i['bdate'].split('.')[2])
-                        #@@ Девушки из СПБ@@#
+                        bdate = int(i['bdate'].split('.')[2])
+                        # @@ Девушки из СПБ@@#
                         if i['sex'] == 1 and i['city']['id'] == 2:
                             all_id.append(
                                 {
@@ -157,23 +159,31 @@ class CollectUserFomGroup:
                                     'sex': i['sex'],  # Пол
                                     'bdata': bdate,  # Дата рождения
                                     'city': i['city']['id'],  # Город
-                                    'cwpm': i['can_write_private_message'],  # Возможность писать сообщения
-                                    'followers': i['followers_count'],  # Количество подписчиков
-                                    'relation': i['relation'],  # Семенное положение
-                                    'last_seen': i["last_seen"]["time"],  # Дата последнего посещения ВК
+                                    # Возможность писать сообщения
+                                    'cwpm': i['can_write_private_message'],
+                                    # Количество подписчиков
+                                    'followers': i['followers_count'],
+                                    # Семенное положение
+                                    'relation': i['relation'],
+                                    # Дата последнего посещения ВК
+                                    'last_seen': i["last_seen"]["time"],
                                     'groups_id': groups_id,
                                 }
                             )
-                        else: # 1573644
-                            CollectUserFomGroup.user_false += 1  # Количество пользователи которые не имели таких полей
+                        else:  # 1573644
+                            # Количество пользователи которые не имели таких полей
+                            CollectUserFomGroup.user_false += 1
                     except (IndexError, KeyError):
-                        CollectUserFomGroup.user_false += 1  # Количество пользователи которые не имели таких полей
+                        # Количество пользователи которые не имели таких полей
+                        CollectUserFomGroup.user_false += 1
             except KeyError as e:
                 if responseJson["error"]["error_code"] == 6:
-                    print("Слишком много запросов в секунду, данные не полученные с сервера, увеличите задержку")
+                    print(
+                        "Слишком много запросов в секунду, данные не полученные с сервера, увеличите задержку")
                     # Проходим заново
                     offset -= counts
-                    logger.warning(f'{padding[1] - offset}', ' Проходим заново')
+                    logger.warning(
+                        f'{padding[1] - offset}', ' Проходим заново')
                     await sleep(time_sleep_thread)
                 else:
                     print(responseJson["error"]["error_code"])
@@ -184,8 +194,8 @@ class CollectUserFomGroup:
         #
         if len(all_id) > 0:
             await save_db()
-        logger.success(f'{time_sleep_thread}',['Карутина завершила работу'])
-        
+        logger.success(f'{time_sleep_thread}', ['Карутина завершила работу'])
+
     ########################################################################################
     # Утилиты
     ########################################################################################
@@ -193,7 +203,7 @@ class CollectUserFomGroup:
         """
         Получить количество подписчиков в группе
         """
-        # Получаем количество всех пользователей в группе 
+        # Получаем количество всех пользователей в группе
         response: dict = sync_http_get(
             'https://api.vk.com/method/groups.getMembers',
             params={
@@ -215,10 +225,10 @@ class CollectUserFomGroup:
 
     @staticmethod
     @SQL.get_session_decor
-    async def _AddGroupIfNotExist(name_group:str,_session: AsyncSession)->int:
+    async def _AddGroupIfNotExist(name_group: str, _session: AsyncSession) -> int:
         """
         Добавить группу в БД если её нет.
-        
+
         return: Id группы
         """
         # Проверяем наличие группы группы
@@ -226,16 +236,14 @@ class CollectUserFomGroup:
         select id from group_vk gv where name_group =:name_group;
         """
         # Получаем ID группы
-        res = await SQL.read_execute_raw_sql(_session, raw_sql=sql, params={"name_group":name_group})    
+        res = await SQL.read_execute_raw_sql(_session, raw_sql=sql, params={"name_group": name_group})
         # Если группы нет то создаем новую группу
         if not res:
             await SQL.write_execute_raw_sql(_session, raw_sql="""
             INSERT into group_vk (name_group) values (:name_group);
-            """,params={"name_group":name_group})
+            """, params={"name_group": name_group})
             logger.info(f"Группа создана: {name_group}")
             # Получаем ID новой группы
-            res = await SQL.read_execute_raw_sql(_session, raw_sql=sql, params={"name_group":name_group})    
+            res = await SQL.read_execute_raw_sql(_session, raw_sql=sql, params={"name_group": name_group})
         #  Id группы
         return res[0]['id']
-
-

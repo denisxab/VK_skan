@@ -5,6 +5,9 @@
 /group
 config.json
 *.sqlite
+*.exe
+*.log
+/vk_scan/__pycache__
 # /vk_scan/vk.db
 # /vk_scan/__env.env
 # /vk_scan/group/

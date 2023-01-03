@@ -1,4 +1,21 @@
-from mg_sql.sql_async.model_logic import RawSqlModel
+import typing
+from mg_sql.sql_async.model_logic import RawSqlModel, SqlTypeReturn
+
+
+class TUserVk(typing.TypedDict):
+    """Тип для таблицы UsersVk"""
+    id: int
+    user_id: int
+    groups_id: int
+    sex: int
+    bdata: int
+    city: int
+    cwpm: int
+    followers: int
+    relation: int
+    last_seen: int
+    time_add: int
+
 
 class UsersVk(RawSqlModel):
     """Пользователи"""
@@ -27,10 +44,11 @@ CREATE TABLE users_vk (
 CREATE UNIQUE INDEX ix_users_vk_user_id ON users_vk (user_id);
     """
 
+
 class GroupsVk(RawSqlModel):
     """Группы"""
     table_name = 'group_vk'
-    
+
     @classmethod
     def create_table(cls) -> str:
         return """
@@ -42,18 +60,37 @@ CREATE TABLE group_vk (
 CREATE UNIQUE INDEX ix_group_vk_name_group ON group_vk (name_group);
     """
 
+
 class LikeUser(RawSqlModel):
     """Лайки"""
     table_name = 'like_user'
-    
+
     @classmethod
     def create_table(cls) -> str:
         return """
 CREATE TABLE like_user (
 	id INTEGER,
-	user_id INTEGER,
+	user_id INTEGER UNIQUE,
 	CONSTRAINT LIKE_USER_PK PRIMARY KEY (id),
-	CONSTRAINT FK_like_user_users_vk FOREIGN KEY (user_id) REFERENCES users_vk(id) ON DELETE CASCADE ON UPDATE CASCADE
+	CONSTRAINT FK_like_user_users_vk FOREIGN KEY (user_id) UNIQUE REFERENCES users_vk(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
     """
 
+    @classmethod
+    def addLike(cls, user_id: int) -> SqlTypeReturn:
+        """Добавить пользователя в лайки"""
+        return dict(
+            raw_sql='''
+            INSERT into like_user (user_id) values (:user_id);
+            ''',
+            params={"user_id": user_id}
+        )
+    @classmethod
+    def deleteLike(cls, user_id: int) -> SqlTypeReturn:
+        """Добавить пользователя в лайки"""
+        return dict(
+            raw_sql='''
+            delete from like_user where user_id=:user_id;
+            ''',
+            params={"user_id": user_id}
+        )
