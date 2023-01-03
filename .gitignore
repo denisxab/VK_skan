@@ -1,12 +1,14 @@
 /venv
 /venvs
+/.vscode
 /.idea
 /group
 config.json
-/vk_scan/vk.db
-/vk_scan/__env.env
-/vk_scan/group/
-/vk_scan/geckodriver.log
-/vk_scan/geckodriver
-/vk_scan/cookie.json
-/vk_scan/config.json
+*.sqlite
+# /vk_scan/vk.db
+# /vk_scan/__env.env
+# /vk_scan/group/
+# /vk_scan/geckodriver.log
+# /vk_scan/geckodriver
+# /vk_scan/cookie.json
+# /vk_scan/config.json
