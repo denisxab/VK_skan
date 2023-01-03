@@ -85,6 +85,7 @@ CREATE TABLE like_user (
             ''',
             params={"user_id": user_id}
         )
+
     @classmethod
     def deleteLike(cls, user_id: int) -> SqlTypeReturn:
         """Добавить пользователя в лайки"""

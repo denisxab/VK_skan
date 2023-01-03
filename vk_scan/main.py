@@ -43,10 +43,9 @@ def collect_user_from_group_vk(name_group: str, token: str):
 def view(type_view: Literal['all', 'like']):
     """
     Показать и записать в файл, подходящих пользовательниц
+    
+    type_view: all-Все пользователи. like-только отлайканные
     """
-    # res = asyncio.run(show_necessary_users())
-    # print(res)
-    # (p_binary / 'necessary_users.json').write_text(dumps(res))
     ##
     # Запустить силениум
     ##
