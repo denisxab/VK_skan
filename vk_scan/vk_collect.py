@@ -16,7 +16,7 @@ class CollectUserFomGroup:
     def __init__(
             self,
             token_vk: str,
-            group_name: str,
+            link_to_group: str,
             versionApi: str,
             limit_get_user_group: int = 0,
             count_coroutine: int = 5,
@@ -32,7 +32,7 @@ class CollectUserFomGroup:
         # Имя группы
         self.name_group: str = [
             _name
-            for _name in match('https://vk.com/([\w\d_]+)|([\w\d_]+)', group_name).groups()
+            for _name in match('https://vk.com/([\w\d_]+)|([\w\d_]+)', link_to_group).groups()
             if _name
         ][0]
         # Версия API

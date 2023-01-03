@@ -126,6 +126,7 @@ class TkWindowManager:
 
     def on_closed(self):
         """Обработка закрытия окна"""
+        
         self.windowTk.destroy()
         self.root_browser.browser.close()
 

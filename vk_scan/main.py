@@ -13,7 +13,8 @@ from selenium.webdriver.firefox.options import Options
 
 #############################
 # Глобальные переменные
-name_group = "https://vk.com/open_sourcecode"
+link_to_group = "https://vk.com/iwantyou"
+name_group = link_to_group.split('/')[-1]
 passwords = get_my_password(r"config.json")
 token = passwords['token']
 # Путь к папке с бинарными данными
@@ -23,13 +24,15 @@ p_binary = Path(__file__).parent.parent / 'binary'
 SQL(SqlUrlConnect.sqllite(path_db=(p_binary / 'sql_db.sqlite').resolve()))
 
 
-def collect_user_from_group_vk(name_group: str, token: str):
+def collect_user_from_group_vk(_link_to_group: str, token: str):
     """
     Собрать в БД пользователи указанной группы  ВК
+
+    _link_to_group: Ссылка на группу
     """
     my_class = CollectUserFomGroup(
         token_vk=token,
-        group_name=name_group,
+        link_to_group=_link_to_group,
         versionApi="5.131",
         # limit_get_user_group=20_000
     )
@@ -38,17 +41,22 @@ def collect_user_from_group_vk(name_group: str, token: str):
     print('Не подходящие записи: ', CollectUserFomGroup.user_false)
 
 
-def view(type_view: Literal['all', 'like']):
+def view(_name_group: str, skip_first: int, type_view: Literal['all', 'like']):
     """
     Запустить отображение в силениуме
 
+    _name_group: Имя группы в таблицу `group_vk`
     type_view: all-Все пользователи. like-только отлайканные
+    skip_first: Сколько пропустить запсией с начала
     """
     match type_view:
         case 'like':
             list_all_user_vk = asyncio.run(show_like_users())
         case 'all':
-            list_all_user_vk = asyncio.run(show_necessary_users())
+            list_all_user_vk = asyncio.run(
+                show_necessary_users(
+                    name_group=_name_group, skip_first=skip_first)
+            )
         case _:
             raise Exception('Неверный тип показа')
 
@@ -75,5 +83,7 @@ def create_table():
 
 if __name__ == "__main__":
     # create_table()
-    collect_user_from_group_vk(name_group="https://vk.com/kinomania", token)
-    # view('all')
+    #collect_user_from_group_vk(_link_to_group=link_to_group, token=token)
+    view(_name_group=name_group, type_view='all',skip_first=0)
+
+    # sppetersburg 1377

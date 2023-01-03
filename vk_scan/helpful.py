@@ -67,12 +67,15 @@ def sync_http_get(url: str, params: dict[str, Any]):
 
 
 @SQL.get_session_decor
-async def show_necessary_users(_session: AsyncSession) -> list[TUserVk]:
+async def show_necessary_users(name_group: str, skip_first: int = 0, _session: AsyncSession = None) -> list[TUserVk]:
     """
     Показать подходящих пользовательниц
+
+    name_group: Имя группы
     """
-    sql_ = """
-    select * from users_vk uv 
+    sql_ = f"""
+    select uv.* from users_vk uv 
+    join group_vk gv on gv.name_group ='{name_group}' and gv.id=uv.groups_id
     where 
         -- Девушки
         sex=1
@@ -87,8 +90,9 @@ async def show_necessary_users(_session: AsyncSession) -> list[TUserVk]:
         -- Свободный статус
         and relation in (0,1,6)
         -- От 18-30 лет
-        and bdata BETWEEN 1993 and 2005 
-    ORDER by bdata desc; 
+        and bdata BETWEEN 1993 and 2004 
+    LIMIT -1 OFFSET {skip_first}
+    --ORDER by bdata desc; 
     """
     res = await SQL.read_execute_raw_sql(_session, raw_sql=sql_)
     return res
