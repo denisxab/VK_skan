@@ -6,6 +6,7 @@ class Browser:
     """
     Работа с браузером
     """
+
     def __init__(self, executable_path, options=None):
         """
         path_to_driver: Путь к драйверу селениума 

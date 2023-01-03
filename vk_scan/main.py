@@ -7,9 +7,7 @@ from vk_collect import CollectUserFomGroup
 from mg_sql.sql_async import SqlUrlConnect
 from mg_sql.sql_async.base import SQL
 from model_db import UsersVk, GroupsVk, LikeUser
-from json import dumps
 from viewer_selenium import ViewSelenium
-from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
 
